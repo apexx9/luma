@@ -1,28 +1,51 @@
-import { pgTable, integer, varchar, date, pgEnum } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  integer,
+  primaryKey,
+} from 'drizzle-orm/pg-core';
 
-//Enums
-const typeEnum = pgEnum("type", ["residential", "commercial", "industrial"]);
-const statusEnum = pgEnum("status", ["healthy", "maintenance", "alert"]);
-
-export const usersTable = pgTable("users",{
-    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-    firstname: varchar({length: 100}).notNull(),
-    lastname: varchar({length: 100}).notNull(),
-    email: varchar({length: 255}).unique().notNull(),
-    password: varchar({length: 255}).notNull(),
-    created_at: date("created_at").defaultNow(),
-    updated_at: date("updated_at").defaultNow().notNull(),
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  password: text('password').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const buildings = pgTable("buildings" ,{
-    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-    user_id: integer("user_id").notNull().references(() => usersTable.id, {onDelete: "cascade", onUpdate: "no action"}),
-    name: varchar({length: 255}).unique().notNull(),
-    address: varchar({length: 255}).notNull(),
-    type: typeEnum("type").default("residential").notNull(),
-    total_units: integer("total_units").notNull(),
-    status: statusEnum("status").default("healthy").notNull(),
-    image_url:varchar({length: 255}).notNull(),
-    created_at: date("created_at").defaultNow(),
-    updated_at: date("updated_at").defaultNow().notNull(),
-})
+export const sessions = pgTable('sessions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+
+  refreshToken: text('refresh_token').notNull(),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+});
+
+export const roles = pgTable('roles', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+});
+
+export const userRoles = pgTable(
+  'user_roles',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+
+    roleId: integer('role_id')
+      .notNull()
+      .references(() => roles.id, { onDelete: 'cascade' }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.roleId] }),
+  }),
+);
+
+export const schema = { users, sessions, roles, userRoles };

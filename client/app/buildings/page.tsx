@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import AuthGuard from "@/components/AuthGuard";
 import {
     Building2,
     MapPin,
@@ -61,11 +62,12 @@ const buildings = [
 ];
 
 export default function BuildingsPage() {
-    const { showToast } = useStore();
+    const { showToast, user } = useStore();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     return (
-        <DashboardLayout>
+        <AuthGuard>
+            <DashboardLayout>
             <div className="flex flex-col gap-10">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -268,6 +270,7 @@ export default function BuildingsPage() {
                     </div>
                 </Modal>
             </div>
-        </DashboardLayout>
+            </DashboardLayout>
+        </AuthGuard>
     );
 }

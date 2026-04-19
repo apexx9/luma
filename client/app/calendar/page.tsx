@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
+import AuthGuard from "@/components/AuthGuard";
 import {
     ChevronLeft,
     ChevronRight,
@@ -38,10 +39,11 @@ const calendarDays = [
 ];
 
 export default function CalendarPage() {
-    const { showToast } = useStore();
+    const { showToast, user } = useStore();
 
     return (
-        <DashboardLayout>
+        <AuthGuard>
+            <DashboardLayout>
             <div className="grid grid-cols-12 gap-6 h-[calc(100vh-200px)] min-h-[600px]">
                 {/* Left Sidebar - Meta */}
                 <aside className="col-span-12 lg:col-span-3 flex flex-col gap-6 h-full overflow-y-auto pr-2 custom-scrollbar">
@@ -291,6 +293,7 @@ export default function CalendarPage() {
                     </div>
                 </aside>
             </div>
-        </DashboardLayout>
+            </DashboardLayout>
+        </AuthGuard>
     );
 }

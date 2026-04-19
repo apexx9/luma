@@ -1,12 +1,12 @@
-import {IsEmail, IsString, MinLength} from "class-validator";
+import { IsEmail, IsString, MinLength } from 'class-validator';
 
 export class LoginDto {
+  constructor() {}
 
-    @IsEmail()
-    @MinLength(10, {message: "Email must be at least 10 characters long"})
-    email: string;
+  @IsEmail()
+  email: string;
 
-    @IsString()
-    @MinLength(6, {message: "Password must be at least 6 characters long"})
-    password: string;
+  @IsString()
+  @MinLength(5, { message: 'your password must be more than 5 characters' })
+  password: string;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
+import AuthGuard from "@/components/AuthGuard";
 import { useStore } from "@/store/useStore";
 import { User, Mail, Shield, Bell, Key, LogOut, Camera, Check } from "lucide-react";
 import Image from "next/image";
@@ -10,10 +11,9 @@ import { ActionButton } from "@/components/ActionComponents";
 export default function ProfilePage() {
     const { user, logout, showToast } = useStore();
 
-    if (!user) return null;
-
     return (
-        <DashboardLayout>
+        <AuthGuard>
+            <DashboardLayout>
             <div className="flex flex-col gap-8 max-w-5xl mx-auto">
                 <div className="mb-4">
                     <h1 className="text-3xl font-black dark:text-white tracking-tighter">My Profile</h1>
@@ -25,7 +25,7 @@ export default function ProfilePage() {
                     <div className="bg-white dark:bg-surface-dark p-8 rounded-[2.5rem] shadow-soft border border-gray-100 dark:border-gray-800 flex flex-col items-center text-center h-fit">
                         <div className="relative group cursor-pointer mb-6">
                             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white dark:border-gray-700 shadow-xl relative">
-                                <Image src={user.avatar} alt={user.name} fill className="object-cover" />
+                                <Image src={user.avatar || ""} alt={user.name} fill className="object-cover" />
                             </div>
                             <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <Camera className="w-8 h-8 text-white" />
@@ -115,6 +115,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+            </DashboardLayout>
+        </AuthGuard>
     );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
+import AuthGuard from "@/components/AuthGuard";
 import {
     DollarSign,
     CreditCard,
@@ -60,9 +61,10 @@ const payments = [
 ];
 
 export default function RentPage() {
-    const { showToast } = useStore();
+    const { showToast, user } = useStore();
     return (
-        <DashboardLayout>
+        <AuthGuard>
+            <DashboardLayout>
             <div className="flex flex-col gap-8">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -274,6 +276,7 @@ export default function RentPage() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+            </DashboardLayout>
+        </AuthGuard>
     );
 }

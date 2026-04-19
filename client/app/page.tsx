@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
+import AuthGuard from "@/components/AuthGuard";
 import { ArrowUpRight, X, ChevronDown, Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,192 +26,194 @@ export default function OverviewPage() {
   const { showToast } = useStore();
 
   return (
-    <DashboardLayout>
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold dark:text-white">Payments</h2>
-          <button
-            onClick={() => showToast("Filtering by current month")}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow dark:text-white border border-gray-100 dark:border-gray-800"
-          >
-            This month
-            <ChevronDown className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <div
-              key={stat.name}
-              className={cn(
-                "p-6 rounded-3xl relative overflow-hidden group border transition-all",
-                stat.primary
-                  ? "bg-primary border-transparent shadow-glow"
-                  : "bg-white dark:bg-surface-dark border-transparent dark:border-gray-800 shadow-soft"
-              )}
-            >
-              <div className="flex justify-between items-start mb-8 relative z-10">
-                <span className={cn("font-semibold", stat.primary ? "text-black/80" : "text-gray-500 dark:text-gray-400")}>
-                  {stat.name}
-                </span>
-                <div className={cn(
-                  "p-1.5 rounded-full transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform",
-                  stat.primary ? "bg-black/10 text-black" : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-white"
-                )}>
-                  <ArrowUpRight className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="relative z-10">
-                <h3 className={cn("text-3xl font-bold mb-1", stat.primary ? "text-black" : "dark:text-white")}>
-                  {stat.value}
-                </h3>
-                <p className={cn("text-sm font-medium", stat.primary ? "text-black/60" : "text-gray-500 dark:text-gray-400")}>
-                  {stat.trend}
-                </p>
-              </div>
-              {stat.primary && <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/20 rounded-full blur-3xl"></div>}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-        <div className="lg:col-span-7 relative group rounded-3xl overflow-hidden shadow-soft h-[360px]">
-          <Image
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLHulxMh37xuqTxLQr7DKIRvWvgU6QKyn_FqdD-eU1AEfuxBZYsCAeDs0GJ1E9td0PXAkh6UuvSz8Wf6jLXoev3xoNp9jOYWfW6R-EiwNAMhfeMsvcgoa7hHKJ2oXhKlpdkVRw8dldz-ODQRJaqmLmKjlZLklFMJALdtztSy1uWbBSAqKTW6oDyu0kHAs6qcMsreVN67AHsw0XNlnrWJnDDTV5OsPCHmzefop5GZh99qQBUYSt7UQkDUu6M_hGstbvCML7tX5Zt3M"
-            alt="Modern Residential Complex"
-            fill
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
-            unoptimized
-          />
-          <button
-            onClick={() => showToast("Gallery closed")}
-            className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors"
-          >
-            <X className="w-5 h-5 text-black" />
-          </button>
-          <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 to-transparent">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary rounded-full mb-2">
-              <span className="w-2 h-2 rounded-full bg-black"></span>
-              <span className="text-[10px] font-bold text-black uppercase">Now Leasing</span>
-            </div>
-            <h3 className="text-2xl font-bold text-white">Modern Residential Complex</h3>
-            <p className="text-white/80 mt-1">12 new units available next month</p>
-          </div>
-        </div>
-
-        <div className="lg:col-span-5 bg-white dark:bg-surface-dark p-6 rounded-3xl shadow-soft flex flex-col border border-transparent dark:border-gray-800">
+    <AuthGuard>
+      <DashboardLayout>
+        <section className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold dark:text-white">Requests</h3>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-              <ArrowUpRight className="w-4 h-4 dark:text-white" />
+            <h2 className="text-2xl font-bold dark:text-white">Payments</h2>
+            <button
+              onClick={() => showToast("Filtering by current month")}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow dark:text-white border border-gray-100 dark:border-gray-800"
+            >
+              This month
+              <ChevronDown className="w-4 h-4" />
             </button>
           </div>
-          <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {requests.map((request, i) => (
-              <Link
-                key={request.name}
-                href={`/leads/${i + 1}`}
-                className="flex items-center justify-between group cursor-pointer hover:bg-gray-100/50 dark:hover:bg-gray-800/50 p-2 -m-2 rounded-2xl transition-all"
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map((stat) => (
+              <div
+                key={stat.name}
+                className={cn(
+                  "p-6 rounded-3xl relative overflow-hidden group border transition-all",
+                  stat.primary
+                    ? "bg-primary border-transparent shadow-glow"
+                    : "bg-white dark:bg-surface-dark border-transparent dark:border-gray-800 shadow-soft"
+                )}
               >
-                <div className="flex items-center gap-3">
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                    <Image src={request.avatar} alt={request.name} fill className="object-cover" unoptimized />
-                  </div>
-                  <div>
-                    <p className="font-semibold dark:text-white group-hover:text-primary-hover transition-colors">{request.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{request.unit}</p>
+                <div className="flex justify-between items-start mb-8 relative z-10">
+                  <span className={cn("font-semibold", stat.primary ? "text-black/80" : "text-gray-500 dark:text-gray-400")}>
+                    {stat.name}
+                  </span>
+                  <div className={cn(
+                    "p-1.5 rounded-full transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform",
+                    stat.primary ? "bg-black/10 text-black" : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-white"
+                  )}>
+                    <ArrowUpRight className="w-4 h-4" />
                   </div>
                 </div>
-                <span className={cn(
-                  "px-4 py-1.5 text-[10px] font-bold rounded-full",
-                  request.status === "New" ? "bg-black dark:bg-white text-white dark:text-black" :
-                    request.status === "In Progress" ? "bg-primary text-black" : "bg-blue-400 text-white"
-                )}>
-                  {request.status}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-6 bg-white dark:bg-surface-dark p-8 rounded-3xl shadow-soft border border-transparent dark:border-gray-800">
-          <div className="flex justify-between items-start mb-6">
-            <h3 className="text-xl font-bold dark:text-white">Modern Residential Complex</h3>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-              <ArrowUpRight className="w-4 h-4 dark:text-white" />
-            </button>
-          </div>
-          <div className="flex gap-8 mb-8 border-b border-gray-100 dark:border-gray-800 pb-6 overflow-x-auto no-scrollbar">
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Residents</p>
-              <p className="text-xl font-bold dark:text-white">1054</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Units</p>
-              <p className="text-xl font-bold dark:text-white">512</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Vacant</p>
-              <p className="text-xl font-bold dark:text-white">102</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Upcoming</p>
-              <p className="text-xl font-bold dark:text-white">54</p>
-            </div>
-          </div>
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-lg font-semibold dark:text-white">Price Trend</h4>
-            <button
-              onClick={() => showToast("Switching trend timescale")}
-              className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-black rounded-lg text-xs font-medium dark:text-gray-300"
-            >
-              Last year
-              <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="relative h-48 w-full">
-            <PriceTrendChart />
-          </div>
-        </div>
-
-        <div className="lg:col-span-6 bg-white dark:bg-surface-dark p-6 rounded-3xl shadow-soft border border-transparent dark:border-gray-800">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold dark:text-white">Upcoming units</h3>
-            <button
-              onClick={() => showToast("Showing upcoming units")}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-black rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow dark:text-white border border-gray-200 dark:border-gray-700"
-            >
-              Next 6 months
-              <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {[1, 2].map((i) => (
-              <div key={i} className="bg-gray-50 dark:bg-black/50 rounded-2xl overflow-hidden pb-3 border border-gray-100 dark:border-gray-800 group">
-                <div className="h-32 w-full overflow-hidden mb-3 relative">
-                  <Image
-                    src={i === 1 ? "https://lh3.googleusercontent.com/aida-public/AB6AXuBrtSgylNnExyqjzTFv3SduK578-QM7Rr_i-wYlrpQyNfHwaRCeKTWJqjJsAlNnw2Mhs2TTTOn9SSCtm0otTVjYm-bk8yvShzLdcq5BcV6QCPhSw_-KtdiqCl_rYQ85Xx-vGXnqRyyl4sfL_SYtbX3CNiNhGS2zXgirw8PSOWx-b5jT5dr65cmKmcfb32r0MvffYTn6DGVbyLLVbwlad07iCkppYvjTGiCYiz1bkTePkmRBujscVjeEYtcyreWz1tquQLmaBPkXxWk" : "https://lh3.googleusercontent.com/aida-public/AB6AXuDI83GJYjOYS-ziXkUei9WPLyw9X3DyF59UOiyEIGrf6MxZEpEWwsOWTpD4wy74xVxsraZ1-DYwg6aoSWQLBs-c_cFD-80NM4gIzhKAEMtajO_EyikBc87GKkLyPMeX1vJWU2mgFQVELL5zcp0fOnJgPywmKm9C6-4RrvKNSSRh091EWvvpp5-BAb-aBI1iK7G84dwTuxI_Ez6DTbnfTIPmdChP5ooUqLwerKwLynu8GyFHfM_0VgBGGdh8yAKcZgpM5fE2L4dWA2E"}
-                    alt="Unit"
-                    fill
-                    className="object-cover transition-transform group-hover:scale-105"
-                    unoptimized
-                  />
+                <div className="relative z-10">
+                  <h3 className={cn("text-3xl font-bold mb-1", stat.primary ? "text-black" : "dark:text-white")}>
+                    {stat.value}
+                  </h3>
+                  <p className={cn("text-sm font-medium", stat.primary ? "text-black/60" : "text-gray-500 dark:text-gray-400")}>
+                    {stat.trend}
+                  </p>
                 </div>
-                <div className="px-4">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-sm dark:text-gray-200">Unit {i === 1 ? '87' : '128'}</span>
-                    <span className="font-bold text-sm dark:text-white">${i === 1 ? '2.600' : '3.450'} / m</span>
-                  </div>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400">Available from {i === 1 ? 'February 12' : 'March 1'}</p>
-                </div>
+                {stat.primary && <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/20 rounded-full blur-3xl"></div>}
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+          <div className="lg:col-span-7 relative group rounded-3xl overflow-hidden shadow-soft h-[360px]">
+            <Image
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLHulxMh37xuqTxLQr7DKIRvWvgU6QKyn_FqdD-eU1AEfuxBZYsCAeDs0GJ1E9td0PXAkh6UuvSz8Wf6jLXoev3xoNp9jOYWfW6R-EiwNAMhfeMsvcgoa7hHKJ2oXhKlpdkVRw8dldz-ODQRJaqmLmKjlZLklFMJALdtztSy1uWbBSAqKTW6oDyu0kHAs6qcMsreVN67AHsw0XNlnrWJnDDTV5OsPCHmzefop5GZh99qQBUYSt7UQkDUu6M_hGstbvCML7tX5Zt3M"
+              alt="Modern Residential Complex"
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              unoptimized
+            />
+            <button
+              onClick={() => showToast("Gallery closed")}
+              className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors"
+            >
+              <X className="w-5 h-5 text-black" />
+            </button>
+            <div className="absolute bottom-0 left-0 right-0 p-8 bg-linear-to-t from-black/80 to-transparent">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary rounded-full mb-2">
+                <span className="w-2 h-2 rounded-full bg-black"></span>
+                <span className="text-[10px] font-bold text-black uppercase">Now Leasing</span>
+              </div>
+              <h3 className="text-2xl font-bold text-white">Modern Residential Complex</h3>
+              <p className="text-white/80 mt-1">12 new units available next month</p>
+            </div>
+          </div>
+
+          <div className="lg:col-span-5 bg-white dark:bg-surface-dark p-6 rounded-3xl shadow-soft flex flex-col border border-transparent dark:border-gray-800">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold dark:text-white">Requests</h3>
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <ArrowUpRight className="w-4 h-4 dark:text-white" />
+              </button>
+            </div>
+            <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              {requests.map((request, i) => (
+                <Link
+                  key={request.name}
+                  href={`/leads/${i + 1}`}
+                  className="flex items-center justify-between group cursor-pointer hover:bg-gray-100/50 dark:hover:bg-gray-800/50 p-2 -m-2 rounded-2xl transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                      <Image src={request.avatar} alt={request.name} fill className="object-cover" unoptimized />
+                    </div>
+                    <div>
+                      <p className="font-semibold dark:text-white group-hover:text-primary-hover transition-colors">{request.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{request.unit}</p>
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "px-4 py-1.5 text-[10px] font-bold rounded-full",
+                    request.status === "New" ? "bg-black dark:bg-white text-white dark:text-black" :
+                      request.status === "In Progress" ? "bg-primary text-black" : "bg-blue-400 text-white"
+                  )}>
+                    {request.status}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-6 bg-white dark:bg-surface-dark p-8 rounded-3xl shadow-soft border border-transparent dark:border-gray-800">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="text-xl font-bold dark:text-white">Modern Residential Complex</h3>
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <ArrowUpRight className="w-4 h-4 dark:text-white" />
+              </button>
+            </div>
+            <div className="flex gap-8 mb-8 border-b border-gray-100 dark:border-gray-800 pb-6 overflow-x-auto no-scrollbar">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Residents</p>
+                <p className="text-xl font-bold dark:text-white">1054</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Units</p>
+                <p className="text-xl font-bold dark:text-white">512</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Vacant</p>
+                <p className="text-xl font-bold dark:text-white">102</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Upcoming</p>
+                <p className="text-xl font-bold dark:text-white">54</p>
+              </div>
+            </div>
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-lg font-semibold dark:text-white">Price Trend</h4>
+              <button
+                onClick={() => showToast("Switching trend timescale")}
+                className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-black rounded-lg text-xs font-medium dark:text-gray-300"
+              >
+                Last year
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="relative h-48 w-full">
+              <PriceTrendChart />
+            </div>
+          </div>
+
+          <div className="lg:col-span-6 bg-white dark:bg-surface-dark p-6 rounded-3xl shadow-soft border border-transparent dark:border-gray-800">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold dark:text-white">Upcoming units</h3>
+              <button
+                onClick={() => showToast("Showing upcoming units")}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-black rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow dark:text-white border border-gray-200 dark:border-gray-700"
+              >
+                Next 6 months
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-gray-50 dark:bg-black/50 rounded-2xl overflow-hidden pb-3 border border-gray-100 dark:border-gray-800 group">
+                  <div className="h-32 w-full overflow-hidden mb-3 relative">
+                    <Image
+                      src={i === 1 ? "https://lh3.googleusercontent.com/aida-public/AB6AXuBrtSgylNnExyqjzTFv3SduK578-QM7Rr_i-wYlrpQyNfHwaRCeKTWJqjJsAlNnw2Mhs2TTTOn9SSCtm0otTVjYm-bk8yvShzLdcq5BcV6QCPhSw_-KtdiqCl_rYQ85Xx-vGXnqRyyl4sfL_SYtbX3CNiNhGS2zXgirw8PSOWx-b5jT5dr65cmKmcfb32r0MvffYTn6DGVbyLLVbwlad07iCkppYvjTGiCYiz1bkTePkmRBujscVjeEYtcyreWz1tquQLmaBPkXxWk" : "https://lh3.googleusercontent.com/aida-public/AB6AXuDI83GJYjOYS-ziXkUei9WPLyw9X3DyF59UOiyEIGrf6MxZEpEWwsOWTpD4wy74xVxsraZ1-DYwg6aoSWQLBs-c_cFD-80NM4gIzhKAEMtajO_EyikBc87GKkLyPMeX1vJWU2mgFQVELL5zcp0fOnJgPywmKm9C6-4RrvKNSSRh091EWvvpp5-BAb-aBI1iK7G84dwTuxI_Ez6DTbnfTIPmdChP5ooUqLwerKwLynu8GyFHfM_0VgBGGdh8yAKcZgpM5fE2L4dWA2E"}
+                      alt="Unit"
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
+                      unoptimized
+                    />
+                  </div>
+                  <div className="px-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-semibold text-sm dark:text-gray-200">Unit {i === 1 ? '87' : '128'}</span>
+                      <span className="font-bold text-sm dark:text-white">${i === 1 ? '2.600' : '3.450'} / m</span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Available from {i === 1 ? 'February 12' : 'March 1'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
     </DashboardLayout>
+    </AuthGuard>
   );
 }

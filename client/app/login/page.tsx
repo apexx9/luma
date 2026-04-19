@@ -7,21 +7,53 @@ import Link from "next/link";
 import { Building2, Mail, Lock, ArrowRight, Github, Chrome } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { login } from "@/actions/auth.api";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const { login, showToast } = useStore();
+    const [isLoading, setIsLoading] = useState(false);
+    const { login: loginUser, showToast } = useStore();
     const router = useRouter();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (email && password) {
-            login({ email });
-            showToast("Welcome back, Aaron!");
-            router.push("/");
-        } else {
+        
+        if (!email || !password) {
             showToast("Please enter both email and password.");
+            return;
+        }
+
+        setIsLoading(true);
+        
+        try {
+            const response = await login({ email, password });
+            
+            // Store tokens in localStorage
+            localStorage.setItem("access_token", response.accessToken);
+            localStorage.setItem("refresh_token", response.refreshToken);
+            
+            // Extract user name from email for avatar generation
+            const userName = email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            // Update store with user data
+            loginUser({ email, name: userName });
+            showToast("Welcome back!");
+            router.push("/");
+        } catch (error: any) {
+            console.error("Login error:", error);
+            
+            if (error.response?.status === 500) {
+                showToast("Server error. Please try again or contact support.");
+            } else if (error.response?.status === 401) {
+                showToast("Invalid email or password. Please try again.");
+            } else if (error.response?.status === 404) {
+                showToast("User not found. Please register first.");
+            } else {
+                showToast(error?.message || "Login failed. Please try again.");
+            }
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -108,9 +140,16 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            className="w-full bg-primary text-black font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] shadow-glow mt-8"
+                            disabled={isLoading}
+                            className="w-full bg-primary text-black font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98] shadow-glow mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Sign In <ArrowRight className="w-5 h-5" />
+                            {isLoading ? (
+                                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <>
+                                    Sign In <ArrowRight className="w-5 h-5" />
+                                </>
+                            )}
                         </button>
                     </form>
 
@@ -135,6 +174,9 @@ export default function LoginPage() {
 
                     <p className="mt-10 text-center text-gray-500 text-sm">
                         Don't have an account? <Link href="/request-access" className="text-primary font-bold hover:underline">Request Access</Link>
+                    </p>
+                    <p className="mt-2 text-center text-gray-600 text-xs">
+                        Tip: Use email <span className="text-primary font-mono">aaron@luma.com</span> with password <span className="text-primary font-mono">password123</span> to test
                     </p>
                 </div>
             </div>
