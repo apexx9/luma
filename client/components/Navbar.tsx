@@ -21,7 +21,7 @@ const tabs = [
 export default function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
-    const { isDarkMode, toggleDarkMode, showToast, user, logout } = useStore();
+    const { isDarkMode, toggleDarkMode, showToast, user, logout, isAdmin } = useStore();
 
     if (!user) return null;
 
@@ -109,9 +109,10 @@ export default function Navbar() {
                     trigger={
                         <button className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm hover:scale-110 transition-transform active:scale-95">
                             <Image
-                                src={user.avatar}
+                                src={user.avatar || `https://ui-avatars.com/api/?name=${user.name.split(' ').map(word => word.charAt(0).toUpperCase()).join('').slice(0, 2)}&background=0D8ABC&color=fff&size=256&bold=true`}
                                 alt="Profile"
                                 fill
+                                sizes="40px"
                                 className="object-cover"
                             />
                         </button>

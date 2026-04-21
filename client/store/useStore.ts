@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { tokenManager, checkAuthentication } from '@/lib/auth';
+
 
 // Helper function to generate initials from name
 const generateInitials = (name: string): string => {
@@ -13,10 +15,11 @@ const generateInitials = (name: string): string => {
 // Helper function to create avatar URL with initials
 const createAvatarWithInitials = (name: string): string => {
     const initials = generateInitials(name);
-    return `https://ui-avatars.com/api/?name=${initials}&background=0D8ABC&color=fff&size=256&bold=true`;
+    return `https://ui-avatars.com/api/?name=${initials}&background=1F2937&color=E5E7EB&size=256&bold=true`;
 };
 
 interface User {
+    id?: number;
     name: string;
     email: string;
     avatar?: string;
@@ -32,11 +35,12 @@ interface AppState {
     toastMessage: string | null;
     showToast: (message: string) => void;
     // Auth State
-    user: User ;
+    user: User | null;
     isAuthenticated: boolean;
     login: (credentials: { email: string; name?: string }) => void;
     logout: () => void;
     checkAuth: () => boolean;
+    isAdmin: () => boolean;
 }
 
 export const useStore = create<AppState>()(
@@ -73,20 +77,29 @@ export const useStore = create<AppState>()(
                 const userName = credentials.name || credentials.email.split('@')[0];
                 const userAvatar = createAvatarWithInitials(userName);
                 
+                // Set role based on email or default to User
+                let userRole = "User";
+                const adminEmails = ['aaron@luma.com', 'aaron.nartey@example.com', 'admin@luma.com'];
+                if (adminEmails.includes(credentials.email) || credentials.email.includes('admin')) {
+                    userRole = "Admin";
+                } else if (credentials.email.includes('aaron')) {
+                    userRole = "Property Manager";
+                }
+                
                 set({
                     isAuthenticated: true,
                     user: {
+                        id: 1, // This would come from the API response
                         name: userName,
                         email: credentials.email,
                         avatar: userAvatar,
-                        role: "Property Manager"
+                        role: userRole
                     }
                 });
             },
             logout: () => {
-                // Clear tokens from localStorage
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("refresh_token");
+                // Clear tokens from cookies
+                tokenManager.clearTokens();
                 set({ 
                     isAuthenticated: false, 
                     user: {
@@ -98,10 +111,25 @@ export const useStore = create<AppState>()(
                 });
             },
             checkAuth: () => {
-                const token = localStorage.getItem("access_token");
-                const { isAuthenticated } = get();
-                return !!token && isAuthenticated;
-            }
+                const isAuthenticated = checkAuthentication();
+                if (!isAuthenticated) {
+                    set({ isAuthenticated: false, user: null });
+                } else {
+                    set({ isAuthenticated: true });
+                }
+                return isAuthenticated;
+            },
+            isAdmin: () => {
+                const { user } = get();
+                if (!user) return false;
+                
+                // Check if user has Admin or Property Manager role or is in admin email list
+                const adminEmails = ['aaron@luma.com', 'aaron.nartey@example.com'];
+                return adminEmails.includes(user.email) || 
+                       user.email.includes('admin') || 
+                       user.role === 'Admin' ||
+                       user.role === 'Property Manager';
+            },
         }),
         {
             name: 'app-storage',
@@ -117,6 +145,9 @@ export const useStore = create<AppState>()(
 
 // Clear persisting storage on app load to remove old test data
 if (typeof window !== 'undefined') {
+    // Initialize auth state first
+    const isAuthenticated = checkAuthentication();
+    
     // Clear old persisting data
     const persistKey = 'app-storage';
     const persistedData = localStorage.getItem(persistKey);
@@ -134,17 +165,22 @@ if (typeof window !== 'undefined') {
         }
     }
     
-    // Initialize auth state
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-        useStore.setState({ 
-            isAuthenticated: false, 
-            user: {
-                name: "",
-                email: "",
-                avatar: "",
-                role: ""
-            }
-        });
+    // Force sync store with actual authentication state
+    useStore.setState({ 
+        isAuthenticated: isAuthenticated,
+        user: isAuthenticated ? {
+            // Try to get user data from persisted storage or create default
+            ...(JSON.parse(persistedData || '{}').state?.user || {}),
+            name: JSON.parse(persistedData || '{}').state?.user?.name || "User",
+            email: JSON.parse(persistedData || '{}').state?.user?.email || "",
+            avatar: JSON.parse(persistedData || '{}').state?.user?.avatar || "",
+            role: JSON.parse(persistedData || '{}').state?.user?.role || "User"
+        } : {
+            name: "",
+            email: "",
+            avatar: "",
+            role: ""
+        }
+    });
+    
     }
-}

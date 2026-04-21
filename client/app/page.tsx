@@ -1,7 +1,6 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
-import AuthGuard from "@/components/AuthGuard";
 import { ArrowUpRight, X, ChevronDown, Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -26,8 +25,7 @@ export default function OverviewPage() {
   const { showToast } = useStore();
 
   return (
-    <AuthGuard>
-      <DashboardLayout>
+    <DashboardLayout>
         <section className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold dark:text-white">Payments</h2>
@@ -117,7 +115,7 @@ export default function OverviewPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                      <Image src={request.avatar} alt={request.name} fill className="object-cover" unoptimized />
+                      <Image src={request.avatar} alt={request.name} fill sizes="40px" className="object-cover" unoptimized />
                     </div>
                     <div>
                       <p className="font-semibold dark:text-white group-hover:text-primary-hover transition-colors">{request.name}</p>
@@ -214,6 +212,5 @@ export default function OverviewPage() {
           </div>
         </section>
     </DashboardLayout>
-    </AuthGuard>
   );
 }

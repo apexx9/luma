@@ -126,7 +126,7 @@ export default function TenantsPage() {
                                         <td className="px-8 py-5">
                                             <Link href="/leads/1" className="flex items-center gap-3">
                                                 <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
-                                                    <Image src={tenant.avatar} alt={tenant.name} fill className="object-cover" unoptimized />
+                                                    <Image src={tenant.avatar} alt={tenant.name} fill sizes="48px" className="object-cover" unoptimized />
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-sm dark:text-gray-100 group-hover:text-primary transition-colors">{tenant.name}</p>

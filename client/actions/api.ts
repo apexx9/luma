@@ -1,4 +1,5 @@
 import axios from "axios";
+import { tokenManager } from "@/lib/auth";
 
 const instance = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080",
@@ -8,17 +9,73 @@ const instance = axios.create({
     }
 });
 
-export default instance;
-
-instance.interceptors.request.use((config) => {
-    const token = localStorage.getItem("access_token");
-
-    if(token) {
-        config.headers.Authorization = `Bearer ${token}`
+// Set up request interceptor for this specific instance
+instance.interceptors.request.use(
+    (config) => {
+        const token = tokenManager.getAccessToken();
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log('Token attached to request:', config.url);
+        } else {
+            console.warn('No token available for request:', config.url);
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
+);
 
-    return config;
-})
+// Set up response interceptor for this specific instance
+instance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        // If error is 401 and we haven't tried refreshing yet
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                const refreshToken = tokenManager.getRefreshToken();
+                if (!refreshToken) {
+                    throw new Error('No refresh token available');
+                }
+
+                const response = await axios.post(
+                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/auth/refresh`,
+                    { refreshToken },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        timeout: 10000,
+                    }
+                );
+
+                const { accessToken, refreshToken: newRefreshToken } = response.data;
+                
+                // Update tokens with new ones
+                tokenManager.setTokens(accessToken, newRefreshToken || refreshToken);
+                
+                // Retry the original request with new token
+                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                return instance(originalRequest);
+            } catch (refreshError) {
+                console.error('Failed to refresh token:', refreshError);
+                // Clear tokens and redirect to login on refresh failure
+                tokenManager.clearTokens();
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/login';
+                }
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
+
+export default instance;
 
 //get
 

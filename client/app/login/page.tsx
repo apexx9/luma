@@ -8,6 +8,7 @@ import { Building2, Mail, Lock, ArrowRight, Github, Chrome } from "lucide-react"
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { login } from "@/actions/auth.api";
+import { tokenManager } from "@/lib/auth";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -29,9 +30,8 @@ export default function LoginPage() {
         try {
             const response = await login({ email, password });
             
-            // Store tokens in localStorage
-            localStorage.setItem("access_token", response.accessToken);
-            localStorage.setItem("refresh_token", response.refreshToken);
+            // Store tokens in cookies
+            tokenManager.setTokens(response.accessToken, response.refreshToken);
             
             // Extract user name from email for avatar generation
             const userName = email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase());

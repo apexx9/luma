@@ -81,7 +81,7 @@ export default function Sidebar() {
                         {residents.map((resident, i) => (
                             <Link key={resident.name} href={`/leads/${i + 1}`} className="flex items-center gap-3 p-2 -m-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
                                 <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-100 dark:border-gray-800">
-                                    <Image src={resident.avatar} alt={resident.name} fill className="object-cover" unoptimized />
+                                    <Image src={resident.avatar} alt={resident.name} fill sizes="40px" className="object-cover" unoptimized />
                                 </div>
                                 <div className="overflow-hidden">
                                     <p className="text-sm font-semibold leading-none truncate">{resident.name}</p>
@@ -108,7 +108,7 @@ export default function Sidebar() {
                 <div className="mt-auto pt-6 border-t border-gray-100 dark:border-gray-800">
                     <Link href="/profile" className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group">
                         <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-100 dark:border-gray-800">
-                            <Image src={user.avatar} alt={user.name} fill className="object-cover" />
+                            <Image src={user.avatar || ''} alt={user.name} fill sizes="40px" className="object-cover" />
                         </div>
                         <div className="overflow-hidden">
                             <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{user.name}</p>

@@ -28,3 +28,7 @@ export const register = (data: RegisterRequest) => {
 export const login = (data: LoginRequest) => {
   return post<AuthResponse, LoginRequest>("/auth/login", data);
 };
+
+export const refreshToken = (refreshToken: string) => {
+  return post<{ accessToken: string; refreshToken: string }, { refreshToken: string }>("/auth/refresh", { refreshToken });
+};

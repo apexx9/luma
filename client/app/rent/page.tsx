@@ -1,7 +1,6 @@
 "use client";
 
 import DashboardLayout from "@/components/DashboardLayout";
-import AuthGuard from "@/components/AuthGuard";
 import {
     DollarSign,
     CreditCard,
@@ -63,8 +62,7 @@ const payments = [
 export default function RentPage() {
     const { showToast, user } = useStore();
     return (
-        <AuthGuard>
-            <DashboardLayout>
+    <DashboardLayout>
             <div className="flex flex-col gap-8">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -213,7 +211,7 @@ export default function RentPage() {
                                         <td className="px-10 py-8">
                                             <div className="flex items-center gap-4">
                                                 <div className="relative w-10 h-10 rounded-full overflow-hidden shadow-sm border-2 border-white dark:border-gray-800">
-                                                    <NextImage src={payment.avatar} alt={payment.resident} fill className="object-cover" unoptimized />
+                                                    <NextImage src={payment.avatar} alt={payment.resident} fill sizes="40px" className="object-cover" unoptimized />
                                                 </div>
                                                 <div>
                                                     <p className="font-bold dark:text-gray-100 group-hover:text-primary transition-colors">{payment.resident}</p>
@@ -277,6 +275,5 @@ export default function RentPage() {
                 </div>
             </div>
             </DashboardLayout>
-        </AuthGuard>
     );
 }
