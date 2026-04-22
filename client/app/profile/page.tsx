@@ -2,6 +2,7 @@
 
 import DashboardLayout from "@/components/DashboardLayout";
 import AuthGuard from "@/components/AuthGuard";
+import BrandLoader from "@/components/BrandLoader";
 import { useStore } from "@/store/useStore";
 import { User, Mail, Shield, Bell, Key, LogOut, Camera, Check } from "lucide-react";
 import Image from "next/image";
@@ -13,17 +14,7 @@ export default function ProfilePage() {
 
     if (!user) {
         return (
-            <AuthGuard>
-                <DashboardLayout>
-                    <div className="flex items-center justify-center min-h-96">
-                        <div className="text-center">
-                            <User className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                            <h2 className="text-2xl font-bold dark:text-white mb-2">Loading Profile...</h2>
-                            <p className="text-gray-500 dark:text-gray-400">Please wait while we load your profile information.</p>
-                        </div>
-                    </div>
-                </DashboardLayout>
-            </AuthGuard>
+            <BrandLoader />
         );
     }
 
@@ -124,7 +115,14 @@ export default function ProfilePage() {
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Check when and where you've logged in.</p>
                                         </div>
                                     </div>
-                                    <ActionButton variant="secondary" size="sm" onClick={() => showToast("Showing login history...")}>View History</ActionButton>
+                                    <ActionButton variant="secondary" size="sm" onClick={() => {
+    try {
+        showToast("Showing login history...");
+    } catch (error) {
+        console.error('Failed to show login history:', error);
+        showToast("Failed to load login history");
+    }
+}}>View History</ActionButton>
                                 </div>
                             </div>
                         </div>

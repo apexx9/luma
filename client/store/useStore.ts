@@ -33,7 +33,12 @@ interface AppState {
     setSidebarOpen: (isOpen: boolean) => void;
     toggleSidebar: () => void;
     toastMessage: string | null;
-    showToast: (message: string) => void;
+    toastType: 'success' | 'error' | 'info' | 'warning' | null;
+    showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+    showSuccess: (message: string) => void;
+    showError: (message: string) => void;
+    showInfo: (message: string) => void;
+    showWarning: (message: string) => void;
     // Auth State
     user: User | null;
     isAuthenticated: boolean;
@@ -60,9 +65,26 @@ export const useStore = create<AppState>()(
             setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
             toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
             toastMessage: null,
-            showToast: (message) => {
-                set({ toastMessage: message });
-                setTimeout(() => set({ toastMessage: null }), 3000);
+            toastType: null,
+            showToast: (message, type = 'info') => {
+                set({ toastMessage: message, toastType: type });
+                setTimeout(() => set({ toastMessage: null, toastType: null }), 4000);
+            },
+            showSuccess: (message) => {
+                set({ toastMessage: message, toastType: 'success' });
+                setTimeout(() => set({ toastMessage: null, toastType: null }), 4000);
+            },
+            showError: (message) => {
+                set({ toastMessage: message, toastType: 'error' });
+                setTimeout(() => set({ toastMessage: null, toastType: null }), 4000);
+            },
+            showInfo: (message) => {
+                set({ toastMessage: message, toastType: 'info' });
+                setTimeout(() => set({ toastMessage: null, toastType: null }), 4000);
+            },
+            showWarning: (message) => {
+                set({ toastMessage: message, toastType: 'warning' });
+                setTimeout(() => set({ toastMessage: null, toastType: null }), 4000);
             },
             // Auth Implementation
             user: {

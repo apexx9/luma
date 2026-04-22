@@ -33,7 +33,8 @@ import {
   createBuilding,
   updateBuildingStatus,
   deleteBuilding,
-  bulkDeleteBuildings
+  bulkDeleteBuildings,
+  searchBuildings
 } from "@/actions/buildings.api";
 
 interface Building {
@@ -64,7 +65,7 @@ interface Building {
 }
 
 export default function BuildingsPage() {
-  const { showToast, isAuthenticated } = useStore();
+  const { isAuthenticated, showToast, showSuccess, showError, showWarning, showInfo } = useStore();
   const router = useRouter();
 
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -97,14 +98,24 @@ export default function BuildingsPage() {
 
     try {
       setLoading(true);
-      const data = await getAllBuildings({
-        type: filterType !== "all" ? filterType : undefined,
-        status: filterStatus !== "all" ? filterStatus : undefined
-      });
+      let data: Building[];
 
-      setBuildings(data as Building[]);
+      // If there's a search query, use search API
+      if (debouncedSearch.trim()) {
+        data = await searchBuildings(debouncedSearch) as Building[];
+      } else {
+        // Use filter API
+        const filters: any = {};
+        if (filterType !== "all") filters.type = filterType;
+        if (filterStatus !== "all") filters.status = filterStatus;
+        
+        data = await getAllBuildings(filters) as Building[];
+      }
+
+      setBuildings(data);
     } catch (error) {
-      showToast("Failed to load buildings");
+      console.error('Failed to load buildings:', error);
+      showError("Failed to load buildings");
     } finally {
       setLoading(false);
     }
@@ -118,10 +129,10 @@ export default function BuildingsPage() {
   const handleStatusChange = async (id: number, status: string) => {
     try {
       await updateBuildingStatus(id, status);
-      showToast("Status updated");
+      showSuccess("Status updated successfully");
       loadBuildings();
     } catch {
-      showToast("Failed to update status");
+      showError("Failed to update status");
     }
   };
 
@@ -142,7 +153,7 @@ export default function BuildingsPage() {
       setSelected([]);
       loadBuildings();
     } catch {
-      showToast("Bulk delete failed");
+      showError("Bulk delete failed");
     }
   };
 
@@ -159,11 +170,11 @@ export default function BuildingsPage() {
     if (confirm('Are you sure you want to delete this building?')) {
       try {
         await deleteBuilding(id);
-        showToast('Building deleted successfully');
+        showSuccess('Building deleted successfully');
         loadBuildings();
       } catch (error) {
         console.error('Delete failed:', error);
-        showToast('Failed to delete building');
+        showError('Failed to delete building');
       }
     }
   };
@@ -171,13 +182,24 @@ export default function BuildingsPage() {
   const handleCreateBuilding = async (buildingData: any) => {
     try {
       await createBuilding(buildingData);
-      showToast("Building created successfully");
+      showSuccess("Building created successfully");
       setIsAddModalOpen(false);
       loadBuildings();
     } catch (error) {
       console.error('Create failed:', error);
-      showToast("Failed to create building");
+      showError("Failed to create building");
     }
+  };
+
+  // Search buildings
+  const handleSearch = async (query: string) => {
+    setSearch(query);
+  };
+
+  // Filter buildings
+  const handleFilter = async (type: string, status: string) => {
+    setFilterType(type);
+    setFilterStatus(status);
   };
 
   return (

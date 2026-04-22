@@ -52,13 +52,27 @@ export default function CalendarPage() {
                             <h3 className="font-semibold text-lg">October 2023</h3>
                             <div className="flex gap-1">
                                 <button
-                                    onClick={() => showToast("Showing previous month")}
+                                    onClick={() => {
+                                        try {
+                                            showToast("Showing previous month");
+                                        } catch (error) {
+                                            console.error('Failed to navigate to previous month:', error);
+                                            showToast("Failed to change month");
+                                        }
+                                    }}
                                     className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                 </button>
                                 <button
-                                    onClick={() => showToast("Showing next month")}
+                                    onClick={() => {
+                                        try {
+                                            showToast("Showing next month");
+                                        } catch (error) {
+                                            console.error('Failed to navigate to next month:', error);
+                                            showToast("Failed to change month");
+                                        }
+                                    }}
                                     className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                                 >
                                     <ChevronRight className="w-4 h-4" />

@@ -1,4 +1,5 @@
 import { get, post, put, del } from "./api";
+import { Building, BuildingStats, Unit } from "@/types/building.types";
 
 // Basic CRUD Operations
 export const getAllBuildings = (filters?: {
@@ -17,7 +18,7 @@ export const getAllBuildings = (filters?: {
     return get(`/buildings${query ? `?${query}` : ''}`);
 };
 
-export const getBuilding = (buildingId: string | number) => {
+export const getBuilding = (buildingId: string | number): Promise<Building> => {
     return get(`/buildings/${buildingId}`);
 };
 
@@ -51,11 +52,11 @@ export const getBuildingsByManager = (managerId: string | number) => {
 };
 
 // Building Management
-export const getBuildingStats = (buildingId: string | number) => {
+export const getBuildingStats = (buildingId: string | number): Promise<BuildingStats> => {
     return get(`/buildings/${buildingId}/stats`);
 };
 
-export const getBuildingUnits = (buildingId: string | number) => {
+export const getBuildingUnits = (buildingId: string | number): Promise<Unit[]> => {
     return get(`/buildings/${buildingId}/units`);
 };
 

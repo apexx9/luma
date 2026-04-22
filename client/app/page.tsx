@@ -30,7 +30,14 @@ export default function OverviewPage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold dark:text-white">Payments</h2>
             <button
-              onClick={() => showToast("Filtering by current month")}
+              onClick={() => {
+                try {
+                  showToast("Filtering by current month");
+                } catch (error) {
+                  console.error('Failed to filter payments:', error);
+                  showToast("Failed to filter payments");
+                }
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow dark:text-white border border-gray-100 dark:border-gray-800"
             >
               This month

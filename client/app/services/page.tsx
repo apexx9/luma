@@ -37,7 +37,14 @@ export default function ServicesPage() {
                     </div>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => showToast("Opening 'Add Service' wizard...")}
+                            onClick={() => {
+                                try {
+                                    showToast("Opening 'Add Service' wizard...");
+                                } catch (error) {
+                                    console.error('Failed to open add service wizard:', error);
+                                    showToast("Failed to open service wizard");
+                                }
+                            }}
                             className="flex items-center gap-2 px-6 py-3 bg-primary text-black rounded-full text-sm font-bold shadow-glow hover:opacity-90 transition-all active:scale-95"
                         >
                             <Plus className="w-4 h-4" />
@@ -60,9 +67,30 @@ export default function ServicesPage() {
                                         </button>
                                     }
                                 >
-                                    <DropdownItem icon={Eye} onClick={() => showToast(`Viewing details for ${service.name}...`)}>Service Details</DropdownItem>
-                                    <DropdownItem icon={Edit} onClick={() => showToast(`Editing configuration for ${service.name}...`)}>Configure</DropdownItem>
-                                    <DropdownItem icon={ShieldOff} variant="danger" onClick={() => showToast(`Suspending ${service.name}...`)}>Suspend Service</DropdownItem>
+                                    <DropdownItem icon={Eye} onClick={() => {
+    try {
+        showToast(`Viewing details for ${service.name}...`);
+    } catch (error) {
+        console.error('Failed to view service details:', error);
+        showToast("Failed to load service details");
+    }
+}}>Service Details</DropdownItem>
+                                    <DropdownItem icon={Edit} onClick={() => {
+    try {
+        showToast(`Editing configuration for ${service.name}...`);
+    } catch (error) {
+        console.error('Failed to edit service:', error);
+        showToast("Failed to edit service");
+    }
+}}>Configure</DropdownItem>
+                                    <DropdownItem icon={ShieldOff} variant="danger" onClick={() => {
+    try {
+        showToast(`Suspending ${service.name}...`);
+    } catch (error) {
+        console.error('Failed to suspend service:', error);
+        showToast("Failed to suspend service");
+    }
+}}>Suspend Service</DropdownItem>
                                 </Dropdown>
                             </div>
                             <h3 className="font-bold text-lg">{service.name}</h3>

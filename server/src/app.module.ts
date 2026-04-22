@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 import { BuildingModule } from './building/building.module';
+import { DbModule } from './db/db.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { BuildingModule } from './building/building.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    DbModule,
     UsersModule,
     AuthModule,
     AdminModule,
