@@ -43,6 +43,13 @@
       "when": 1776683343494,
       "tag": "0005_organic_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776963193174,
+      "tag": "0006_square_slipstream",
+      "breakpoints": true
     }
   ]
 }

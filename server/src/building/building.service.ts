@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { buildings } from '../db/schema';
+import { buildings, units } from '../db/schema';
 import { eq, ilike, and, or } from 'drizzle-orm';
 
 @Injectable()
@@ -180,9 +180,12 @@ export class BuildingsService {
 
   async getBuildingUnits(buildingId: number) {
     try {
-      // This would query the units table when you create it
-      // For now, return empty array
-      return [];
+      const buildingUnits = await this.db
+        .select()
+        .from(units)
+        .where(eq(units.buildingId, buildingId));
+      
+      return buildingUnits;
     } catch (error) {
       throw new Error(`Failed to fetch building units: ${error.message}`);
     }
@@ -190,8 +193,17 @@ export class BuildingsService {
 
   async addUnitToBuilding(buildingId: number, unitData: any, userId: number) {
     try {
-      // This would insert into the units table when you create it
-      return { message: 'Unit would be added here', buildingId, unitData };
+      const [newUnit] = await this.db
+        .insert(units)
+        .values({ 
+          ...unitData, 
+          buildingId, 
+          createdAt: new Date(), 
+          updatedAt: new Date() 
+        })
+        .returning();
+      
+      return newUnit;
     } catch (error) {
       throw new Error(`Failed to add unit to building: ${error.message}`);
     }
@@ -271,6 +283,50 @@ export class BuildingsService {
       return updatedBuilding;
     } catch (error) {
       throw new Error(`Failed to delete building image: ${error.message}`);
+    }
+  }
+
+  async seedBuildingWithUnits(buildingId: number) {
+    try {
+      const building = await this.getBuildingById(buildingId);
+      if (!building) {
+        throw new Error('Building not found');
+      }
+
+      const sampleUnits: any[] = [];
+      const totalUnits = building.totalUnits || 3;
+      
+      for (let i = 1; i <= Math.min(totalUnits, 5); i++) {
+        const floor = Math.ceil(i / 2);
+        const unitNumber = `${String.fromCharCode(64 + Math.ceil(i / 2))}${((i - 1) % 2) + 1}01`;
+        
+        sampleUnits.push({
+          buildingId,
+          name: unitNumber,
+          type: building.type.toLowerCase(),
+          status: i <= 2 ? 'occupied' : 'vacant',
+          squareFootage: building.type === 'residential' ? 800 + (i * 50) : 1200 + (i * 100),
+          bedrooms: building.type === 'residential' ? (i <= 2 ? 2 : 3) : 0,
+          bathrooms: building.type === 'residential' ? (i <= 2 ? 1 : 2) : 1,
+          floor,
+          rent: building.type === 'residential' ? 1000 + (i * 200) : 2000 + (i * 300),
+          deposit: building.type === 'residential' ? 2000 + (i * 400) : 4000 + (i * 600),
+          tenant: i <= 2 ? `Tenant ${i}` : null,
+          tenantEmail: i <= 2 ? `tenant${i}@email.com` : null,
+          tenantPhone: i <= 2 ? `555-010${i}` : null,
+          leaseStart: i <= 2 ? new Date('2024-01-01') : null,
+          leaseEnd: i <= 2 ? new Date('2024-12-31') : null,
+        });
+      }
+
+      const insertedUnits = await this.db
+        .insert(units)
+        .values(sampleUnits)
+        .returning();
+      
+      return insertedUnits;
+    } catch (error) {
+      throw new Error(`Failed to seed building with units: ${error.message}`);
     }
   }
 }

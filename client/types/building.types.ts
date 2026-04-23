@@ -35,8 +35,21 @@ export interface BuildingStats {
 
 export interface Unit {
   id: string | number;
+  buildingId: string | number;
   name: string;
-  status: 'occupied' | 'vacant';
+  type: string;
+  status: 'vacant' | 'occupied' | 'maintenance';
+  squareFootage?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  floor?: number;
+  rent?: number;
+  deposit?: number;
   tenant?: string;
-  rent: number;
+  tenantEmail?: string;
+  tenantPhone?: string;
+  leaseStart?: string;
+  leaseEnd?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

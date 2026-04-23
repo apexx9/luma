@@ -13,21 +13,21 @@ export default function Toast() {
         switch (toastType) {
             case 'success':
                 return {
-                    bg: 'bg-green-500',
-                    text: 'text-white',
+                    bg: 'bg-primary',
+                    text: 'text-black',
                     icon: CheckCircle,
                     iconBg: 'bg-white/20'
                 };
             case 'error':
                 return {
-                    bg: 'bg-red-500',
+                    bg: 'bg-red-600',
                     text: 'text-white',
                     icon: AlertCircle,
                     iconBg: 'bg-white/20'
                 };
             case 'warning':
                 return {
-                    bg: 'bg-yellow-500',
+                    bg: 'bg-amber-600',
                     text: 'text-white',
                     icon: AlertTriangle,
                     iconBg: 'bg-white/20'
@@ -50,7 +50,7 @@ export default function Toast() {
             <div className={cn(
                 styles.bg,
                 styles.text,
-                "px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 min-w-[300px] border border-white/10 dark:border-black/10"
+                "px-6 py-4 rounded-3xl shadow-glow flex items-center gap-4 min-w-[300px] border border-white/10 dark:border-black/10"
             )}>
                 <div className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center",
@@ -62,7 +62,7 @@ export default function Toast() {
                 <p className="text-sm font-bold flex-1">{toastMessage}</p>
                 <button
                     onClick={() => useStore.setState({ toastMessage: null, toastType: null })}
-                    className="p-1 hover:bg-white/10 dark:hover:bg-black/10 rounded-lg transition-colors"
+                    className="p-1 hover:bg-white/20 dark:hover:bg-black/20 rounded-lg transition-colors"
                 >
                     <X className="w-4 h-4" />
                 </button>

@@ -190,4 +190,9 @@ export class BuildingController {
       userId,
     );
   }
+
+  @Post(':id/seed-units')
+  async seedBuildingUnits(@Param('id') buildingId: string) {
+    return this.buildingsService.seedBuildingWithUnits(parseInt(buildingId));
+  }
 }

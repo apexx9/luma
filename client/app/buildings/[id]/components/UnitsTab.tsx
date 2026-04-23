@@ -46,7 +46,7 @@ export function UnitsTab({ units, showToast }: { units: Unit[]; showToast: (mess
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-500 font-medium">{unit.tenant || "—"}</td>
-                                <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">${unit.rent ? unit.rent.toLocaleString() : "0"}</td>
+                                <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">${unit.rent ? `$${unit.rent.toLocaleString()}` : "$0"}</td>
                                 <td className="px-6 py-4 flex justify-end">
                                     <button className="p-2 text-gray-400 hover:text-primary transition-colors rounded-lg hover:bg-primary/10">
                                         <ArrowUpRight className="w-4 h-4" />
