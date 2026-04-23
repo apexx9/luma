@@ -92,39 +92,6 @@ export const buildings = pgTable('buildings', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export const units = pgTable('units', {
-  id: serial('id').primaryKey(),
-  buildingId: integer('building_id')
-    .notNull()
-    .references(() => buildings.id, { onDelete: 'cascade' }),
-  
-  // Unit details
-  name: varchar('name', { length: 50 }).notNull(), // e.g., "A-101", "Unit 2B"
-  type: varchar('type', { length: 50 }).notNull(), // residential, commercial, storage
-  status: varchar('status', { length: 20 }).default('vacant'), // vacant, occupied, maintenance
-  
-  // Physical details
-  squareFootage: integer('square_footage'),
-  bedrooms: integer('bedrooms'),
-  bathrooms: integer('bathrooms'),
-  floor: integer('floor'),
-  
-  // Financial
-  rent: decimal('rent', { precision: 10, scale: 2 }),
-  deposit: decimal('deposit', { precision: 10, scale: 2 }),
-  
-  // Tenant information
-  tenant: varchar('tenant', { length: 255 }),
-  tenantEmail: varchar('tenant_email', { length: 255 }),
-  tenantPhone: varchar('tenant_phone', { length: 20 }),
-  leaseStart: timestamp('lease_start'),
-  leaseEnd: timestamp('lease_end'),
-  
-  // Timestamps
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
-
 export const adminActivity = pgTable('admin_activity', {
   id: serial('id').primaryKey(),
   adminId: integer('admin_id').notNull(),
@@ -140,6 +107,5 @@ export const schema = {
   roles,
   userRoles,
   buildings,
-  units,
   adminActivity,
 };

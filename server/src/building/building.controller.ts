@@ -71,12 +71,6 @@ export class BuildingController {
   async getBuildingStats(@Param('id') id: string) {
     return this.buildingsService.getBuildingStats(parseInt(id));
   }
-
-  @Get(':id/units')
-  async getBuildingUnits(@Param('id') id: string) {
-    return this.buildingsService.getBuildingUnits(parseInt(id));
-  }
-
   @Post()
   async createBuilding(
     @Body() createBuildingDto: CreateBuildingDto,
@@ -84,20 +78,6 @@ export class BuildingController {
   ) {
     const userId = req.user?.userId || 1;
     return this.buildingsService.createBuilding(createBuildingDto, userId);
-  }
-
-  @Post(':id/units')
-  async addUnitToBuilding(
-    @Param('id') buildingId: string,
-    @Body() unitData: any,
-    @Req() req: any,
-  ) {
-    const userId = req.user?.userId || 1;
-    return this.buildingsService.addUnitToBuilding(
-      parseInt(buildingId),
-      unitData,
-      userId,
-    );
   }
 
   @Put(':id')
@@ -177,22 +157,4 @@ export class BuildingController {
     return result;
   }
 
-  @Delete(':id/images/:imageId')
-  async deleteBuildingImage(
-    @Param('id') buildingId: string,
-    @Param('imageId') imageId: string,
-    @Req() req: any,
-  ) {
-    const userId = req.user?.userId || 1;
-    return this.buildingsService.deleteBuildingImage(
-      parseInt(buildingId),
-      parseInt(imageId),
-      userId,
-    );
   }
-
-  @Post(':id/seed-units')
-  async seedBuildingUnits(@Param('id') buildingId: string) {
-    return this.buildingsService.seedBuildingWithUnits(parseInt(buildingId));
-  }
-}

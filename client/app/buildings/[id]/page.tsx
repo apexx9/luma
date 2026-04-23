@@ -175,26 +175,24 @@ export default function BuildingDetailPage() {
         </header>
 
         {/* TABS */}
-        <div className="bg-white dark:bg-[#121212] p-6">
-          <div className="flex gap-8 overflow-x-auto border-b border-gray-200/60 dark:border-white/5">
-            {["overview", "units", "financials", "settings"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={cn(
-                  "px-2 py-3 text-sm font-medium transition-all relative capitalize whitespace-nowrap tracking-wider border-b-2 -mb-px",
-                  tab === t 
-                    ? "text-primary border-primary" 
-                    : "text-gray-500 border-transparent hover:text-gray-900 dark:hover:text-gray-300"
+        <div className="flex gap-6 md:gap-8 border-b border-gray-200/60 dark:border-white/5 px-6 overflow-x-hidden">
+          {["overview", "units", "financials", "settings"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                "px-2 py-3 text-sm font-medium transition-all relative capitalize whitespace-nowrap tracking-wider border-b-2 -mb-px shrink-0",
+                tab === t 
+                  ? "text-primary border-primary" 
+                  : "text-gray-500 border-transparent hover:text-gray-900 dark:hover:text-gray-300"
                 )}
               >
                 {t}
                 {tab === t && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full animate-in slide-in-from-left duration-300" />
                 )}
               </button>
             ))}
-          </div>
         </div>
 
         {/* CONTENT SECTIONS */}
