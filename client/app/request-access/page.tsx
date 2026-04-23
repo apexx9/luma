@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 import { useRouter } from "next/navigation";
 import { Building2, Mail, User, Phone, Globe, ArrowLeft, Send, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";

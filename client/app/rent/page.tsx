@@ -18,46 +18,8 @@ import {
 } from "lucide-react";
 import NextImage from "next/image";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/store/useStore";
-
-const payments = [
-    {
-        id: "PAY-9921",
-        resident: "Jaden Fischer",
-        amount: "$2,450.00",
-        date: "Dec 01, 2024",
-        status: "Paid",
-        method: "Auto-pay (ACH)",
-        avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDahpOa39hkq5sS-B5_cRO7jtlpr8J7ZR5JduOTrwxC9jgwUTHTiI5D4uLzsxyDLd6slJd4MWFm-a0xT_95MSd46AQUBtqvHklMZPlgLYTaEuHny6vMYIoDrEcybFYZY4DlRvXdFvrP8DxVWSna-quAXwUxjE80WbGi0TrgwanWqMl0pR4rx4BeGZOE1Bax1Ddy0cODj6A6EYFcU9NqB0njMQ-RLMMzCmoQS49_Lr5chkE63lWXz7Px_yQMhpsN6s3vO6NHRtgv9Ug"
-    },
-    {
-        id: "PAY-9918",
-        resident: "Aron Levine",
-        amount: "$2,100.00",
-        date: "Dec 01, 2024",
-        status: "Pending",
-        method: "Credit Card",
-        avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBNJU_RoFDH1_NNO8GzLtVY29QSwgiZdmy28kZjJFO8-Fu-vMblvmFuwpgawHD5fo1qHvh0YaiXPRSXRwu10jezVBTCofV9424SD5As-7kMI6bv_rBteOry2q9eXHVyv2pCcrpGlnO93AOyRPYIQIjMKXhzQE3YM1IsNpV5i5ZasS-dSiir3QMbdsY1-E9kBaqW73awFl5HoEv3l3RQx8wbCsJp0qkfbJdIa_XRtlofMedFsv2Dqi3jxi7Py1oWPkCc1FtVMPb4WvI"
-    },
-    {
-        id: "PAY-9915",
-        resident: "Tessa Tucker",
-        amount: "$1,850.00",
-        date: "Nov 30, 2024",
-        status: "Paid",
-        method: "ACH Transfer",
-        avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBq_XKoFjDSyedqiEYVUTbELJfvPty4NAuqB2YyqiXfZrX1KbJwzKU8ZWBeBqmMcXW76tm2-Gr_53gkt3KtwQ-O3VczpPI-HfJzViq_XGO5Le8AcnR4zE648d5jG2tk9FxNDIcnRHscmbxGjLz7mT3G0O6jnINucKj3OKDDu2_RFDcjlkGA-BmEZOZaMK7MLz-TNcYbI5yHWdQF1QY0v2N8nUg9URbAZTtBjQjJcgaMD0HfyKB7tK5Zxbc3C2K_JvG5IeMC9cMXCDE"
-    },
-    {
-        id: "PAY-9912",
-        resident: "Devon Lindsay",
-        amount: "$3,200.00",
-        date: "Nov 28, 2024",
-        status: "Overdue",
-        method: "-",
-        avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBAHTfXMFV2Zew57yjLQG2yVXvlbgrL0VqzI_zJSAum9FRT0Xjusy2ax6HAGuMJj5KiB8GRz79KDq1R6GotjRe4WrslLh5J4BUdBSADcM1yMIulWE3dv99k5K6AI7Czx69A7ZBwh6HpXYXe1Gu8GvmnnZCO7XeAwp_8t11LSMdESkIkH1ljdVOPdn51pcN7p0C-8jfpMSFlzyAtlmjtf38Vr-yj1SWziqiZKBT5A91Igkfld1Q2odXKR7zsOoNZMf6gTqGWY-cngkU"
-    }
-];
+import { useStore } from "@/store";
+import { mockPayments } from "./data/mockPayments";
 
 export default function RentPage() {
     const { showToast, user } = useStore();
@@ -203,7 +165,7 @@ export default function RentPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
-                                {payments.map((payment) => (
+                                {mockPayments.map((payment) => (
                                     <tr key={payment.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="px-10 py-8">
                                             <p className="font-black text-xs text-gray-400 uppercase">{payment.id}</p>

@@ -3,7 +3,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import AuthGuard from "@/components/AuthGuard";
 import BrandLoader from "@/components/BrandLoader";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 import { User, Mail, Shield, Bell, Key, LogOut, Camera, Check } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";

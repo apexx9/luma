@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import PriceTrendChart from "@/components/PriceTrendChart";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 import { Dropdown, DropdownItem } from "@/components/Dropdown";
 
 const metrics = [

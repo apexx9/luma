@@ -13,7 +13,7 @@ import {
     ArrowUpRight,
     MessageSquare
 } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -35,12 +35,12 @@ const residents = [
 export default function Sidebar() {
     const pathname = usePathname();
     const { isSidebarOpen, showToast, user } = useStore();
-
+    
     if (!user) return null;
 
     return (
         <aside className={cn(
-            "w-72 flex-shrink-0 flex flex-col p-6 border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-black transition-all duration-300 z-10",
+            "w-72 shrink-0 flex flex-col p-6 border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-black transition-all duration-300 z-10",
             !isSidebarOpen && "w-20 overflow-hidden"
         )}>
             <div className="flex items-center gap-3 mb-10">
@@ -108,10 +108,16 @@ export default function Sidebar() {
                 <div className="mt-auto pt-6 border-t border-gray-100 dark:border-gray-800">
                     <Link href="/profile" className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group">
                         <div className="relative w-10 h-10 rounded-full overflow-hidden border border-gray-100 dark:border-gray-800">
-                            <Image src={user.avatar || ''} alt={user.name} fill sizes="40px" className="object-cover" />
+                            {user.avatar ? (
+                                <Image src={user.avatar} alt={user.name} fill sizes="40px" className="object-cover" loading="eager" />
+                            ) : (
+                                <div className="w-full h-full bg-primary flex items-center justify-center text-black font-bold text-sm">
+                                    {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                </div>
+                            )}
                         </div>
                         <div className="overflow-hidden">
-                            <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{user.name}</p>
+                            <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{user.name || 'Unknown User'}</p>
                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{user.role}</p>
                         </div>
                     </Link>

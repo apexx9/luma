@@ -14,7 +14,7 @@ import {
     MoreHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 import { Dropdown, DropdownItem } from "@/components/Dropdown";
 import { Edit, ShieldOff, Eye } from "lucide-react";
 

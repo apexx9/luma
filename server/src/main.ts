@@ -20,7 +20,7 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document);
 
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000', 'https://luma-5sfk.onrender.com'],
     credentials: true,
   });
 

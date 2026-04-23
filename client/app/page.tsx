@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import PriceTrendChart from "@/components/PriceTrendChart";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 
 const stats = [
   { name: "Rent", value: "$102,054.00", trend: "+5% vs last month", primary: true },

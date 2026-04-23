@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Plus, ArrowUpRight, ChevronRight, type LucideIcon } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 
 interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: "primary" | "secondary" | "outline" | "ghost";

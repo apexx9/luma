@@ -1,34 +1,24 @@
-// src/features/auth/api/auth.api.ts
+import { api } from '@/lib/api-client';
+import { LoginCredentials, RegisterCredentials, AuthResponse, User } from '@/lib/auth';
 
-import { post } from "@/actions/api";
+// Auth API calls
+export const login = (credentials: LoginCredentials) => 
+  api.post<AuthResponse>('/auth/login', credentials);
 
-// 🔹 TYPES
-export type RegisterRequest = {
-  name: string;
-  email: string;
-  password: string;
-};
+export const register = (credentials: RegisterCredentials) => 
+  api.post<AuthResponse>('/auth/register', credentials);
 
-export type LoginRequest = {
-  email: string;
-  password: string;
-};
+export const logout = (refreshToken: string) => 
+  api.post<void>('/auth/logout', { refreshToken });
 
-export type AuthResponse = {
-  accessToken: string;
-  refreshToken: string;
-};
+export const refreshToken = (refreshToken: string) => 
+  api.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', { refreshToken });
 
-// 🔹 API CALLS
+export const getCurrentUser = () => 
+  api.get<User>('/auth/me');
 
-export const register = (data: RegisterRequest) => {
-  return post<any, RegisterRequest>("/auth/register", data);
-};
+export const updateProfile = (data: Partial<User>) => 
+  api.put<User>('/auth/profile', data);
 
-export const login = (data: LoginRequest) => {
-  return post<AuthResponse, LoginRequest>("/auth/login", data);
-};
-
-export const refreshToken = (refreshToken: string) => {
-  return post<{ accessToken: string; refreshToken: string }, { refreshToken: string }>("/auth/refresh", { refreshToken });
-};
+export const changePassword = (data: { currentPassword: string; newPassword: string }) => 
+  api.post<void>('/auth/change-password', data);

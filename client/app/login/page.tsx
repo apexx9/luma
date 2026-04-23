@@ -1,21 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { useStore } from "@/store/useStore";
+import { useState, useEffect } from "react";
+import { useStore } from "@/store";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Mail, Lock, ArrowRight, Github, Chrome } from "lucide-react";
+import { Building2, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { login } from "@/actions/auth.api";
-import { tokenManager } from "@/lib/auth";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const { login: loginUser, showToast } = useStore();
+    const { login: loginUser, showToast, isAuthenticated } = useStore();
     const router = useRouter();
+
+    // Redirect authenticated users to dashboard
+    useEffect(() => {
+        if (isAuthenticated) {
+            router.push("/");
+        }
+    }, [isAuthenticated, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,30 +34,11 @@ export default function LoginPage() {
         setIsLoading(true);
         
         try {
-            const response = await login({ email, password });
-            
-            // Store tokens in cookies
-            tokenManager.setTokens(response.accessToken, response.refreshToken);
-            
-            // Extract user name from email for avatar generation
-            const userName = email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase());
-            
-            // Update store with user data
-            loginUser({ email, name: userName });
-            showToast("Welcome back!");
+            await loginUser(email, password);
             router.push("/");
         } catch (error: any) {
+            // Error handling is done in the store
             console.error("Login error:", error);
-            
-            if (error.response?.status === 500) {
-                showToast("Server error. Please try again or contact support.");
-            } else if (error.response?.status === 401) {
-                showToast("Invalid email or password. Please try again.");
-            } else if (error.response?.status === 404) {
-                showToast("User not found. Please register first.");
-            } else {
-                showToast(error?.message || "Login failed. Please try again.");
-            }
         } finally {
             setIsLoading(false);
         }
@@ -113,7 +100,7 @@ export default function LoginPage() {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="aaron@luma.com"
+                                    placeholder="Enter your email"
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                     required
                                 />
@@ -128,13 +115,24 @@ export default function LoginPage() {
                             <div className="relative">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-primary transition-colors"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="w-5 h-5" />
+                                    ) : (
+                                        <Eye className="w-5 h-5" />
+                                    )}
+                                </button>
                             </div>
                         </div>
 
@@ -153,30 +151,8 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="mt-10">
-                        <div className="relative flex items-center py-4">
-                            <div className="flex-grow border-t border-white/10"></div>
-                            <span className="flex-shrink mx-4 text-gray-600 text-[10px] font-black uppercase tracking-widest">Or continue with</span>
-                            <div className="flex-grow border-t border-white/10"></div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mt-6">
-                            <button className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 py-3 rounded-xl hover:bg-white/10 transition-colors">
-                                <Chrome className="w-5 h-5" />
-                                <span className="text-sm font-bold text-white font-inter">Google</span>
-                            </button>
-                            <button className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 py-3 rounded-xl hover:bg-white/10 transition-colors">
-                                <Github className="w-5 h-5" />
-                                <span className="text-sm font-bold text-white font-inter">Github</span>
-                            </button>
-                        </div>
-                    </div>
-
                     <p className="mt-10 text-center text-gray-500 text-sm">
                         Don't have an account? <Link href="/request-access" className="text-primary font-bold hover:underline">Request Access</Link>
-                    </p>
-                    <p className="mt-2 text-center text-gray-600 text-xs">
-                        Tip: Use email <span className="text-primary font-mono">aaron@luma.com</span> with password <span className="text-primary font-mono">password123</span> to test
                     </p>
                 </div>
             </div>

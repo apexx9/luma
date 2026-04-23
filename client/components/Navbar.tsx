@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Bell, Settings, Search, User, LogOut, Shield, CreditCard, Mail, MessageSquare, Clock } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Dropdown, DropdownItem, DropdownDivider } from "@/components/Dropdown";

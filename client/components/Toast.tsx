@@ -1,6 +1,6 @@
 "use client";
 
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 import { cn } from "@/lib/utils";
 import { Info, X, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 

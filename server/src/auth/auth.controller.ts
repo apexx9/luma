@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Get, HttpStatus } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
@@ -34,5 +34,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   logoutAll(@Req() req: any) {
     return this.auth.logoutEverywhere(req.user.userId);
+  }
+
+  @Get('validate')
+  @UseGuards(JwtAuthGuard)
+  validate() {
+    return { valid: true };
   }
 }

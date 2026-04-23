@@ -2,31 +2,15 @@
 
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import {
-  Building2,
-  MapPin,
-  MoreHorizontal,
-  CheckCircle2,
-  AlertCircle,
-  Search,
-  Plus,
-  Trash2,
-  RefreshCw,
-  Eye,
-  Edit,
-  Settings,
-  ArrowUpRight
-} from "lucide-react";
-
-import { ActionButton } from "@/components/ActionComponents";
-import { Dropdown, DropdownItem, DropdownDivider } from "@/components/Dropdown";
-import { Modal } from "@/components/Modal";
-import { StepForm } from "@/components/StepForm";
-import BrandLoader from "@/components/BrandLoader";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 import { useRouter } from "next/navigation";
+
+
+import { BuildingsHeader } from "./components/BuildingsHeader";
+import { BuildingsFilters } from "./components/BuildingsFilters";
+import { BuildingsBulkBar } from "./components/BuildingsBulkBar";
+import { BuildingsGrid } from "./components/BuildingsGrid";
+import { BuildingsModals } from "./components/BuildingsModals";
 
 import {
   getAllBuildings,
@@ -37,32 +21,7 @@ import {
   searchBuildings
 } from "@/actions/buildings.api";
 
-interface Building {
-  id: number;
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country?: string;
-  type: string;
-  totalUnits: number;
-  yearBuilt?: number;
-  squareFootage?: number;
-  numberOfFloors?: number;
-  purchasePrice?: number;
-  monthlyRent?: number;
-  propertyTax?: number;
-  insurance?: number;
-  status: string;
-  managerId?: number;
-  latitude?: number;
-  longitude?: number;
-  imageUrl?: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Building } from "@/types/building.types";
 
 export default function BuildingsPage() {
   const { isAuthenticated, showToast, showSuccess, showError, showWarning, showInfo } = useStore();
@@ -73,6 +32,8 @@ export default function BuildingsPage() {
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Building[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -82,27 +43,65 @@ export default function BuildingsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
 
-  // 🔥 Debounce Search
+  // 🔥 Optimized Search with Debouncing & Caching
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
-    }, 400);
+    }, 300); // Reduced from 400ms to 300ms for better UX
     return () => clearTimeout(timer);
   }, [search]);
 
-  // 🔥 Load Buildings
+  // 🔍 Search function with caching
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setSearch(query);
+      return;
+    }
+
+    setIsSearching(true);
+    setSearch(query);
+
+    try {
+      // Check if we have cached results for this query
+      if (debouncedSearch === query && searchResults.length > 0) {
+        setSearchResults(searchResults);
+        return;
+      }
+
+      // Perform API search
+      const results = await searchBuildings(query) as Building[];
+      setSearchResults(results);
+      showInfo(`Found ${results.length} buildings matching "${query}"`);
+    } catch (error) {
+      console.error('Search failed:', error);
+      showError('Search failed. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // 🔥 Load Buildings (with search caching)
   const loadBuildings = async () => {
     if (!isAuthenticated) {
       return;
     }
-
+    
     try {
       setLoading(true);
       let data: Building[];
-
-      // If there's a search query, use search API
+      
+      // If there's a search query, use cached results or search API
       if (debouncedSearch.trim()) {
-        data = await searchBuildings(debouncedSearch) as Building[];
+        // Use cached results if available and query matches
+        if (searchResults.length > 0 && debouncedSearch === search) {
+          data = searchResults;
+        } else {
+          // Perform new search and cache results
+          const results = await searchBuildings(debouncedSearch) as Building[];
+          setSearchResults(results);
+          data = results;
+        }
       } else {
         // Use filter API
         const filters: any = {};
@@ -110,8 +109,10 @@ export default function BuildingsPage() {
         if (filterStatus !== "all") filters.status = filterStatus;
         
         data = await getAllBuildings(filters) as Building[];
+        // Clear search results when using filters
+        setSearchResults([]);
       }
-
+      
       setBuildings(data);
     } catch (error) {
       console.error('Failed to load buildings:', error);
@@ -162,7 +163,7 @@ export default function BuildingsPage() {
     setIsEditModalOpen(true);
   };
 
-  const handleDeleteBuilding = async (id: number) => {
+  const handleDeleteBuilding = async (id: string | number) => {
     if (!isAuthenticated) {
       showToast('Please login to delete buildings');
       return;
@@ -191,282 +192,84 @@ export default function BuildingsPage() {
     }
   };
 
-  // Search buildings
-  const handleSearch = async (query: string) => {
-    setSearch(query);
+  
+  // Filter buildings
+  const handleFilter = (type: string, status: string) => {
+    setFilterType(type);
+    setFilterStatus(status);
   };
 
-  // Filter buildings
-  const handleFilter = async (type: string, status: string) => {
+  const handleFilterType = (type: string) => {
     setFilterType(type);
+  };
+
+  const handleFilterStatus = (status: string) => {
     setFilterStatus(status);
   };
 
   return (
     <DashboardLayout>
-        <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-8">
+        {/* HEADER */}
+        <BuildingsHeader 
+          onRefresh={loadBuildings}
+          onAddBuilding={() => setIsAddModalOpen(true)}
+        />
 
-          {/* HEADER */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Buildings</h1>
-              <p className="text-gray-500 text-sm mt-2">
-                Manage all property assets
-              </p>
-            </div>
+        {/* FILTERS */}
+        <BuildingsFilters
+          search={search}
+          onSearchChange={handleSearch}
+          filterType={filterType}
+          onFilterTypeChange={handleFilterType}
+          filterStatus={filterStatus}
+          onFilterStatusChange={handleFilterStatus}
+          isSearching={isSearching}
+          searchResults={searchResults}
+        />
 
-            <div className="flex items-center gap-3">
-              <ActionButton onClick={loadBuildings} variant="outline">
-                <RefreshCw className="w-4 h-4" />
-              </ActionButton>
-              <ActionButton className="px-4" onClick={() => setIsAddModalOpen(true)}>
-                <Plus className="w-4 h-4" />
-                Add Building
-              </ActionButton>
-            </div>
-          </div>
+        {/* BULK BAR */}
+        <BuildingsBulkBar
+          selectedCount={selected.length}
+          onBulkDelete={handleBulkDelete}
+        />
 
-          {/* FILTERS */}
-          <div className="flex flex-wrap gap-3 items-center mt-2">
+        {/* GRID */}
+        <BuildingsGrid
+          buildings={searchResults.length > 0 ? searchResults : buildings}
+          loading={loading || isSearching}
+          onEditBuilding={handleEditBuilding}
+          showToast={showToast}
+          handleDeleteBuilding={handleDeleteBuilding}
+        />
 
-            {/* SEARCH */}
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search buildings..."
-                className="pl-11 pr-4 py-2.5 rounded-full bg-gray-50 dark:bg-black/50 
-                       border border-transparent focus:border-primary/40 
-                       focus:ring-2 focus:ring-primary/20 
-                       text-sm w-[260px] transition-all"
-              />
-            </div>
-
-            {/* TYPE FILTER */}
-            {["all", "Residential", "Commercial", "Industrial"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setFilterType(t)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
-                  filterType === t
-                    ? "bg-primary text-black shadow-sm"
-                    : "bg-gray-100 dark:bg-black/40 hover:bg-gray-200 dark:hover:bg-black/60"
-                )}
-              >
-                {t}
-              </button>
-            ))}
-
-            {/* STATUS FILTER */}
-            {["all", "active", "maintenance", "inactive"].map((s) => (
-              <button
-                key={s}
-                onClick={() => setFilterStatus(s)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
-                  filterStatus === s
-                    ? "bg-primary text-black shadow-sm"
-                    : "bg-gray-100 dark:bg-black/40 hover:bg-gray-200 dark:hover:bg-black/60"
-                )}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-
-          {/* BULK BAR */}
-          {selected.length > 0 && (
-            <div className="flex justify-between items-center bg-black text-white px-4 py-2 rounded-lg">
-              <span>{selected.length} selected</span>
-              <button onClick={handleBulkDelete} className="flex items-center gap-1">
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </button>
-            </div>
-          )}
-
-          {/* GRID */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-
-            {loading ? (
-              <div className="col-span-full flex items-center justify-center py-20">
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 relative">
-                    <div className="absolute w-full h-full rounded-full border border-primary/20 animate-spin"></div>
-                    <div className="absolute w-12 h-12 rounded-full border-t-2 border-primary border-transparent animate-spin" style={{ animationDirection: 'reverse' }}></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-6 h-6 bg-primary rounded-full animate-pulse"></div>
-                    </div>
-                  </div>
-                  <p className="text-gray-500 text-sm font-medium">Loading properties...</p>
-                </div>
-              </div>
-            ) : buildings.length === 0 ? (
-              <div className="col-span-full text-center py-20">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center">
-                  <Building2 className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No properties found</h3>
-                <p className="text-gray-500 text-sm">Use the "Add Building" button above to get started</p>
-              </div>
-            ) : (
-              buildings.map((b) => (
-                <div
-                  key={b.id}
-                  className="group border dark:border-gray-800 rounded-3xl overflow-hidden hover:shadow-xl transition-all hover:scale-[1.02] bg-gray-50/30 dark:bg-[#1f1f22]/50 cursor-pointer"
-                  onClick={() => router.push(`/buildings/${b.id}`)}
-                >
-                  {/* IMAGE */}
-                  <div className="relative h-48 w-full overflow-hidden">
-                    <Image
-                      src={
-                        b.imageUrl ||
-                        "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                      }
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      alt={b.name}
-                      className="object-cover transition-transform duration-700 group-hover:scale-110"
-                      unoptimized
-                    />
-
-                    {/* STATUS BADGES */}
-                    <div className="absolute top-4 left-4 flex gap-2">
-                      <span className="px-3 py-1 bg-black/70 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase">
-                        {b.type}
-                      </span>
-                    </div>
-                    <div className="absolute top-4 right-4">
-                      <span className={cn(
-                        "px-3 py-1 backdrop-blur-md text-black text-[10px] font-bold rounded-full uppercase flex items-center gap-1",
-                        b.status === "active" ? "bg-green-400" : 
-                        b.status === "maintenance" ? "bg-yellow-400" : "bg-red-400"
-                      )}>
-                        {b.status === "active" && <CheckCircle2 className="w-3 h-3" />}
-                        {b.status === "maintenance" && <AlertCircle className="w-3 h-3" />}
-                        {b.status === "inactive" && <AlertCircle className="w-3 h-3" />}
-                        {b.status}
-                      </span>
-                    </div>
-
-                    {/* ACTIONS DROPDOWN */}
-                    <Dropdown
-                      trigger={
-                        <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white dark:bg-surface-dark flex items-center justify-center text-gray-400 hover:text-black dark:hover:text-white transition-colors shadow-sm">
-                          <MoreHorizontal className="w-5 h-5" />
-                        </button>
-                      }
-                    >
-                      <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-800 mb-2">
-                        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Building Actions</p>
-                      </div>
-                      <DropdownItem icon={Eye} onClick={() => router.push(`/buildings/${b.id}`)}>
-                        View Details
-                      </DropdownItem>
-                      <DropdownItem icon={Edit} onClick={() => handleEditBuilding(b)}>
-                        Edit Property
-                      </DropdownItem>
-                      <DropdownItem icon={Settings} onClick={() => showToast(`Opening settings for ${b.name}...`)}>
-                        Unit Settings
-                      </DropdownItem>
-                      <DropdownDivider />
-                      <DropdownItem 
-                        icon={Trash2} 
-                        variant="danger" 
-                        onClick={() => handleDeleteBuilding(b.id)}
-                      >
-                        Delete Building
-                      </DropdownItem>
-                    </Dropdown>
-                  </div>
-
-                  {/* CARD BODY */}
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold group-hover:text-primary transition-colors">{b.name}</h3>
-                    
-                    <p className="flex items-center gap-1 text-xs text-gray-500 mt-2">
-                      <MapPin className="w-3 h-3 text-primary" />
-                      {b.address}, {b.city}, {b.state}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Units</p>
-                        <p className="text-lg font-bold">{b.totalUnits}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Type</p>
-                        <p className="text-lg font-bold text-primary">{b.type}</p>
-                      </div>
-                    </div>
-
-                    {b.squareFootage && (
-                      <div className="mt-4">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Square Footage</p>
-                        <p className="text-sm font-medium">{b.squareFootage.toLocaleString()} sq ft</p>
-                      </div>
-                    )}
-
-                    <ActionButton 
-                      variant="outline" 
-                      className="w-full mt-6" 
-                      icon={ArrowUpRight} 
-                      iconPosition="right"
-                      onClick={() => router.push(`/buildings/${b.id}`)}
-                    >
-                      View Assets
-                    </ActionButton>
-                  </div>
-                </div>
-              ))
-            )}
-
-          </div>
-
-          {/* ADD BUILDING MODAL */}
-          <Modal
-            isOpen={isAddModalOpen}
-            onClose={() => setIsAddModalOpen(false)}
-            title="Add New Building"
-          >
-            <StepForm 
-              onSubmit={handleCreateBuilding}
-              onCancel={() => setIsAddModalOpen(false)}
-            />
-          </Modal>
-
-          <Modal
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            title="Edit Building"
-          >
-            <StepForm 
-              onSubmit={async (data) => {
-                try {
-                  // Update building with all the data
-                  const updateData = {
-                    ...editingBuilding,
-                    ...data
-                  };
-                  await updateBuildingStatus(editingBuilding!.id, updateData.status || 'active');
-                  showToast("Building updated successfully");
-                  setIsEditModalOpen(false);
-                  setEditingBuilding(null);
-                  loadBuildings();
-                } catch (error) {
-                  console.error('Update failed:', error);
-                  showToast("Failed to update building");
-                }
-              }}
-              onCancel={() => {
-                setIsEditModalOpen(false);
-                setEditingBuilding(null);
-              }}
-            />
-          </Modal>
-        </div>
-      </DashboardLayout>
+        {/* MODALS */}
+        <BuildingsModals
+          isAddModalOpen={isAddModalOpen}
+          setIsAddModalOpen={setIsAddModalOpen}
+          isEditModalOpen={isEditModalOpen}
+          setIsEditModalOpen={setIsEditModalOpen}
+          editingBuilding={editingBuilding}
+          onCreateBuilding={handleCreateBuilding}
+          onUpdateBuilding={async (data) => {
+            try {
+              // Update building with all the data
+              const updateData = {
+                ...editingBuilding,
+                ...data
+              };
+              await updateBuildingStatus(editingBuilding!.id, updateData.status || 'active');
+              showToast("Building updated successfully");
+              setIsEditModalOpen(false);
+              setEditingBuilding(null);
+              loadBuildings();
+            } catch (error) {
+              console.error('Update failed:', error);
+              showToast("Failed to update building");
+            }
+          }}
+        />
+      </div>
+    </DashboardLayout>
   );
 }

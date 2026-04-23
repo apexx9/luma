@@ -1,179 +1,263 @@
 import Cookies from 'js-cookie';
 import axios from 'axios';
 
-// Token storage keys
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
-
 // Token configuration
-const TOKEN_CONFIG = {
-  accessToken: {
-    key: ACCESS_TOKEN_KEY,
-    expires: 1 / 24, // 1 hour in days
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
-  },
-  refreshToken: {
-    key: REFRESH_TOKEN_KEY,
-    expires: 7, // 7 days in days
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
-  },
-};
+export const TOKEN_CONFIG = {
+  ACCESS_TOKEN: 'access_token',
+  REFRESH_TOKEN: 'refresh_token',
+  ACCESS_EXPIRY: 1 * 60 * 60 * 1000, // 1 hour
+  REFRESH_EXPIRY: 7 * 24 * 60 * 60 * 1000, // 7 days
+} as const;
 
-// Token management utilities
-export const tokenManager = {
-  // Get tokens from cookies
-  getAccessToken: (): string | null => {
-    return Cookies.get(ACCESS_TOKEN_KEY) || null;
-  },
+// API configuration
+export const API_CONFIG = {
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+  TIMEOUT: 10000,
+  ENDPOINTS: {
+    LOGIN: '/auth/login',
+    REGISTER: '/auth/register',
+    REFRESH: '/auth/refresh',
+    LOGOUT: '/auth/logout',
+    VALIDATE: '/auth/validate',
+  } as const,
+} as const;
 
-  getRefreshToken: (): string | null => {
-    return Cookies.get(REFRESH_TOKEN_KEY) || null;
-  },
+// User types
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  avatar?: string;
+}
 
-  // Set tokens in cookies
-  setTokens: (accessToken: string, refreshToken: string): void => {
-    Cookies.set(ACCESS_TOKEN_KEY, accessToken, TOKEN_CONFIG.accessToken);
-    Cookies.set(REFRESH_TOKEN_KEY, refreshToken, TOKEN_CONFIG.refreshToken);
-  },
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
 
-  // Clear tokens from cookies
-  clearTokens: (): void => {
-    Cookies.remove(ACCESS_TOKEN_KEY);
-    Cookies.remove(REFRESH_TOKEN_KEY);
-  },
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
 
-  // Check if access token exists and is not expired
-  hasValidAccessToken: (): boolean => {
-    const token = tokenManager.getAccessToken();
+export interface RegisterCredentials {
+  name: string;
+  email: string;
+  password: string;
+}
+
+// Token management
+class TokenManager {
+  private getCookieOptions() {
+    return {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: (process.env.NODE_ENV === 'production' ? 'strict' : 'lax') as 'strict' | 'lax',
+      expires: new Date(Date.now() + TOKEN_CONFIG.REFRESH_EXPIRY),
+    };
+  }
+
+  setTokens(accessToken: string, refreshToken: string) {
+    Cookies.set(TOKEN_CONFIG.ACCESS_TOKEN, accessToken, {
+      ...this.getCookieOptions(),
+      expires: new Date(Date.now() + TOKEN_CONFIG.ACCESS_EXPIRY),
+    });
+    Cookies.set(TOKEN_CONFIG.REFRESH_TOKEN, refreshToken, this.getCookieOptions());
+  }
+
+  getAccessToken(): string | null {
+    return Cookies.get(TOKEN_CONFIG.ACCESS_TOKEN) || null;
+  }
+
+  getRefreshToken(): string | null {
+    return Cookies.get(TOKEN_CONFIG.REFRESH_TOKEN) || null;
+  }
+
+  clearTokens() {
+    Cookies.remove(TOKEN_CONFIG.ACCESS_TOKEN);
+    Cookies.remove(TOKEN_CONFIG.REFRESH_TOKEN);
+  }
+
+  isAccessTokenExpired(): boolean {
+    const token = this.getAccessToken();
+    if (!token) return true;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now();
+      const expiryTime = payload.exp * 1000;
+      return currentTime >= expiryTime;
+    } catch {
+      return true;
+    }
+  }
+
+  isRefreshTokenExpired(): boolean {
+    const token = this.getRefreshToken();
+    if (!token) return true;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return Date.now() >= payload.exp * 1000;
+    } catch {
+      return true;
+    }
+  }
+
+  hasValidTokens(): boolean {
+    // Access token can be expired, but refresh token might still be valid
+    // We can use refresh token to get a new access token
+    return !this.isRefreshTokenExpired();
+  }
+}
+
+// Authentication service
+class AuthService {
+  private tokenManager = new TokenManager();
+  private refreshPromise: Promise<string | null> | null = null;
+
+  // Server-side token validation
+  async validateToken(): Promise<boolean> {
+    const token = this.tokenManager.getAccessToken();
     if (!token) return false;
 
     try {
-      // Decode JWT to check expiration (basic check)
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now() / 1000;
-      return payload.exp > currentTime;
-    } catch {
-      // If token is malformed, consider it invalid
+      const response = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VALIDATE}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 5000,
+      });
+      return response.status === 200;
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        // Validation endpoint doesn't exist, fall back to client-side check
+        return this.tokenManager.hasValidTokens();
+      }
+      console.warn('Token validation failed:', error?.response?.status || error?.message);
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        this.tokenManager.clearTokens();
+      }
       return false;
     }
-  },
-
-  // Check if refresh token exists
-  hasValidRefreshToken: (): boolean => {
-    return !!tokenManager.getRefreshToken();
-  },
-};
-
-// Refresh token function
-export const refreshAccessToken = async (): Promise<string | null> => {
-  const refreshToken = tokenManager.getRefreshToken();
-  
-  if (!refreshToken) {
-    console.warn('No refresh token available');
-    return null;
   }
 
-  try {
-    const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/auth/refresh`,
-      { refreshToken },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
-      }
-    );
-
-    const { accessToken, refreshToken: newRefreshToken } = response.data;
-    
-    // Update tokens with new ones
-    tokenManager.setTokens(accessToken, newRefreshToken || refreshToken);
-    
-    return accessToken;
-  } catch (error) {
-    console.error('Token refresh failed:', error);
-    
-    // If refresh fails, clear tokens
-    tokenManager.clearTokens();
-    
-    return null;
-  }
-};
-
-let isInterceptorSetup = false;
-
-// Axios interceptor for automatic token refresh
-export const setupAxiosInterceptors = () => {
-  if (isInterceptorSetup) return;
-  
-  // Request interceptor - add access token to all requests
-  axios.interceptors.request.use(
-    (config) => {
-      const token = tokenManager.getAccessToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
+  // Token refresh
+  async refreshAccessToken(): Promise<string | null> {
+    if (this.refreshPromise) {
+      return this.refreshPromise;
     }
-  );
 
-  // Response interceptor - handle token refresh
-  axios.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      const originalRequest = error.config;
+    this.refreshPromise = this.performTokenRefresh();
+    
+    try {
+      const result = await this.refreshPromise;
+      return result;
+    } finally {
+      this.refreshPromise = null;
+    }
+  }
 
-      // If error is 401 and we haven't tried refreshing yet
-      if (error.response?.status === 401 && !originalRequest._retry) {
-        originalRequest._retry = true;
+  private async performTokenRefresh(): Promise<string | null> {
+    const refreshToken = this.tokenManager.getRefreshToken();
+    if (!refreshToken) return null;
 
-        try {
-          const newAccessToken = await refreshAccessToken();
-          
-          if (newAccessToken) {
-            // Retry the original request with new token
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-            return axios(originalRequest);
-          }
-        } catch (refreshError) {
-          console.error('Failed to refresh token:', refreshError);
-          // Redirect to login on refresh failure
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
+    try {
+      const response = await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REFRESH}`, {
+        refreshToken,
+      });
+
+      const { accessToken, refreshToken: newRefreshToken } = response.data;
+      this.tokenManager.setTokens(accessToken, newRefreshToken || refreshToken);
+      return accessToken;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      this.tokenManager.clearTokens();
+      return null;
+    }
+  }
+
+  // Authentication check
+  async checkAuthentication(): Promise<boolean> {
+    const hasAccessToken = this.tokenManager.hasValidTokens();
+    
+    if (!hasAccessToken) {
+      return false;
+    }
+    
+    // If access token is expired but refresh token is still valid, try to refresh
+    if (this.tokenManager.isAccessTokenExpired() && !this.tokenManager.isRefreshTokenExpired()) {
+      try {
+        const newAccessToken = await this.refreshAccessToken();
+        if (newAccessToken) {
+          return true;
         }
+      } catch (error) {
+        return false;
       }
-
-      return Promise.reject(error);
     }
-  );
-  
-  isInterceptorSetup = true;
-};
-
-// Authentication check function
-export const checkAuthentication = (): boolean => {
-  return tokenManager.hasValidAccessToken();
-};
-
-// Initialize auth on app start
-export const initializeAuth = () => {
-  setupAxiosInterceptors();
-  
-  // Check if we have tokens but the user state is not updated
-  const hasToken = tokenManager.hasValidAccessToken();
-  
-  if (hasToken) {
-    console.log('Valid access token found, user should be authenticated');
-  } else {
-    console.log('No valid access token found');
+    
+    const isValid = await this.validateToken();
+    return isValid;
   }
-  
-  return hasToken;
-};
+
+  // Login
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const response = await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`, credentials);
+    
+    const authData = response.data as AuthResponse;
+    this.tokenManager.setTokens(authData.accessToken, authData.refreshToken);
+    
+    return authData;
+  }
+
+  // Register
+  async register(credentials: RegisterCredentials): Promise<AuthResponse> {
+    const response = await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REGISTER}`, credentials);
+    
+    const authData = response.data as AuthResponse;
+    this.tokenManager.setTokens(authData.accessToken, authData.refreshToken);
+    
+    return authData;
+  }
+
+  // Logout
+  async logout(): Promise<void> {
+    try {
+      await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGOUT}`, {
+        refreshToken: this.tokenManager.getRefreshToken(),
+      });
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      this.tokenManager.clearTokens();
+    }
+  }
+
+  // Get current user from token
+  getCurrentUser(): User | null {
+    const token = this.tokenManager.getAccessToken();
+    if (!token) return null;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        id: payload.sub || payload.id,
+        email: payload.email,
+        name: payload.name || payload.email?.split('@')[0] || 'User',
+        role: payload.role || 'User',
+        avatar: payload.avatar,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // Expose token manager methods
+  getAccessToken = () => this.tokenManager.getAccessToken();
+  clearTokens = () => this.tokenManager.clearTokens();
+}
+
+export const authService = new AuthService();
+export const tokenManager = authService; // For backward compatibility

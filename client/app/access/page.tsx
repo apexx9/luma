@@ -16,7 +16,7 @@ import {
     ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 import { Dropdown, DropdownItem } from "@/components/Dropdown";
 import { Modal } from "@/components/Modal";
 import { ActionButton } from "@/components/ActionComponents";

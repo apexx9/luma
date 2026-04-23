@@ -1,3 +1,3 @@
-import instance, {get, post, put, del} from "./api";
+import { get, post, put, del } from "./api";
 
 

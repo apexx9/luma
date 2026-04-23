@@ -12,7 +12,7 @@ import {
     ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/store";
 
 const collectionStats = [
     { name: "Total Invoiced", value: "$1.2M", trend: "+5%" },
