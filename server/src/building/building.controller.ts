@@ -16,6 +16,7 @@ import { BuildingsService } from './building.service';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { CreateBuildingDto } from './dto/building.dto';
 import { UpdateBuildingDto } from './dto/update-building.dto';
+import type { AuthenticatedRequest } from '../auth/auth.types';
 
 @Controller('buildings')
 @UseGuards(JwtAuthGuard)
@@ -74,9 +75,9 @@ export class BuildingController {
   @Post()
   async createBuilding(
     @Body() createBuildingDto: CreateBuildingDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.userId || 1;
+    const userId = req.user!.sub;
     return this.buildingsService.createBuilding(createBuildingDto, userId);
   }
 
@@ -84,9 +85,9 @@ export class BuildingController {
   async updateBuilding(
     @Param('id') id: string,
     @Body() updateBuildingDto: UpdateBuildingDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.userId || 1;
+    const userId = req.user!.sub;
     const building = await this.buildingsService.updateBuilding(
       parseInt(id),
       updateBuildingDto,
@@ -102,9 +103,9 @@ export class BuildingController {
   async updateBuildingStatus(
     @Param('id') id: string,
     @Body('status') status: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.userId || 1;
+    const userId = req.user!.sub;
     return this.buildingsService.updateBuildingStatus(
       parseInt(id),
       status,
@@ -116,9 +117,9 @@ export class BuildingController {
   async uploadBuildingImage(
     @Param('id') id: string,
     @Body('imageUrl') imageUrl: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.userId || 1;
+    const userId = req.user!.sub;
     return this.buildingsService.uploadBuildingImage(
       parseInt(id),
       imageUrl,
@@ -129,24 +130,27 @@ export class BuildingController {
   @Post('bulk-update')
   async bulkUpdateBuildings(
     @Body('buildings') buildingsData: any[],
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.userId || 1;
+    const userId = req.user!.sub;
     return this.buildingsService.bulkUpdateBuildings(buildingsData, userId);
   }
 
   @Post('bulk-delete')
   async bulkDeleteBuildings(
     @Body('buildingIds') buildingIds: number[],
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.userId || 1;
+    const userId = req.user!.sub;
     return this.buildingsService.bulkDeleteBuildings(buildingIds, userId);
   }
 
   @Delete(':id')
-  async deleteBuilding(@Param('id') id: string, @Req() req: any) {
-    const userId = req.user?.userId || 1;
+  async deleteBuilding(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user!.sub;
     const result = await this.buildingsService.deleteBuilding(
       parseInt(id),
       userId,
@@ -156,5 +160,4 @@ export class BuildingController {
     }
     return result;
   }
-
-  }
+}

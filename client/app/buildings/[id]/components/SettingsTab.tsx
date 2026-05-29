@@ -21,7 +21,7 @@ export function SettingsTab({ building, showToast, onRefresh }: { building: Buil
         state: building.state || '',
         zipCode: building.zipCode || '',
         country: building.country || '',
-        type: building.type || building.buildingType || 'residential',
+        type: normalizeBuildingType(building.type || building.buildingType || 'residential'),
         total_units: (building.total_units || building.totalUnits || 0).toString(),
         status: (building.status === 'active' ? 'healthy' : building.status === 'inactive' ? 'alert' : building.status) || 'healthy',
         image_url: building.image_url || building.imageUrl || '',
@@ -66,7 +66,7 @@ export function SettingsTab({ building, showToast, onRefresh }: { building: Buil
             state: building.state || '',
             zipCode: building.zipCode || '',
             country: building.country || '',
-            type: building.type || building.buildingType || 'residential',
+            type: normalizeBuildingType(building.type || building.buildingType || 'residential'),
             total_units: (building.total_units || building.totalUnits || 0).toString(),
             status: (building.status === 'active' ? 'healthy' : building.status === 'inactive' ? 'alert' : building.status) || 'healthy',
             image_url: building.image_url || building.imageUrl || '',
@@ -78,6 +78,20 @@ export function SettingsTab({ building, showToast, onRefresh }: { building: Buil
         });
         setIsEditing(false);
     };
+
+    function normalizeBuildingType(value: string) {
+        const normalized = value.toLowerCase();
+
+        if (normalized.includes('commercial')) {
+            return 'commercial';
+        }
+
+        if (normalized.includes('industrial')) {
+            return 'industrial';
+        }
+
+        return 'residential';
+    }
 
     const handleDelete = async () => {
         try {

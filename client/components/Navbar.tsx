@@ -21,7 +21,7 @@ const tabs = [
 export default function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
-    const { isDarkMode, toggleDarkMode, showToast, user, logout, isAdmin } = useStore();
+    const { isDarkMode, toggleDarkMode, showToast, user, logout } = useStore();
 
     if (!user) return null;
 
@@ -125,7 +125,16 @@ export default function Navbar() {
                     <DropdownItem icon={User} onClick={() => router.push("/profile")}>My Profile</DropdownItem>
                     <DropdownItem icon={Mail} onClick={() => showToast("Opening messages...")}>Inbox</DropdownItem>
                     <DropdownDivider />
-                    <DropdownItem icon={LogOut} variant="danger" onClick={() => { logout(); router.push("/login"); }}>Sign Out</DropdownItem>
+                    <DropdownItem
+                        icon={LogOut}
+                        variant="danger"
+                        onClick={async () => {
+                            await logout();
+                            router.push("/login");
+                        }}
+                    >
+                        Sign Out
+                    </DropdownItem>
                 </Dropdown>
             </div>
         </header>

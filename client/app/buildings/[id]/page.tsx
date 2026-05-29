@@ -11,8 +11,8 @@ import {
   Edit
 } from "lucide-react";
 
-import { getBuilding, getBuildingStats, getBuildingUnits } from "@/actions/buildings.api";
-import { Building, BuildingStats, Unit } from "@/types/building.types";
+import { getBuilding, getBuildingStats } from "@/actions/buildings.api";
+import { Building, BuildingStats } from "@/types/building.types";
 import { ActionButton } from "@/components/ActionComponents";
 import { useStore } from "@/store";
 import BrandLoader from "@/components/BrandLoader";
@@ -29,7 +29,6 @@ export default function BuildingDetailPage() {
 
   const [building, setBuilding] = useState<Building | null>(null);
   const [stats, setStats] = useState<BuildingStats | null>(null);
-  const [units, setUnits] = useState<Unit[]>([]);
   const [tab, setTab] = useState("overview");
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +39,6 @@ export default function BuildingDetailPage() {
       // Try to load building data first
       let buildingData = null;
       let statsData = null;
-      let unitsData: Unit[] = [];
       
       try {
         buildingData = await getBuilding(id as string);
@@ -57,14 +55,6 @@ export default function BuildingDetailPage() {
       } catch (error) {
         console.warn('Failed to load stats data:', (error as any)?.message || error);
         setStats(null);
-      }
-      
-      try {
-        unitsData = await getBuildingUnits(id as string);
-        setUnits(unitsData);
-      } catch (error) {
-        console.warn('Failed to load units data:', (error as any)?.message || error);
-        setUnits([]);
       }
       
     } catch (error) {
@@ -198,7 +188,7 @@ export default function BuildingDetailPage() {
         {/* CONTENT SECTIONS */}
         <main className="pb-12 space-y-6">
           {tab === "overview" && <OverviewTab stats={stats} building={building} />}
-          {tab === "units" && <UnitsTab units={units} showToast={showToast} />}
+          {tab === "units" && <UnitsTab building={building} stats={stats} showToast={showToast} />}
           {tab === "financials" && <FinancialsTab stats={stats} building={building} />}
           {tab === "settings" && <SettingsTab building={building} showToast={showToast} onRefresh={loadData} />}
         </main>

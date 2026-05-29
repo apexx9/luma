@@ -3,34 +3,53 @@ export interface Building {
   name: string;
   address: string;
   city: string;
-  state?: string;
-  zipCode?: string;
+  state: string;
+  zipCode: string;
   country?: string;
-  type: "residential" | "commercial" | "industrial";
-  total_units: number;
+  type: string;
+  totalUnits: number;
   status: "active" | "inactive" | "maintenance";
-  image_url?: string;
-  // Optional fields that might be added by the backend
+  imageUrl?: string;
+  // Financial fields
+  yearBuilt?: number;
+  squareFootage?: number;
+  numberOfFloors?: number;
+  purchasePrice?: number;
+  monthlyRent?: number;
+  propertyTax?: number;
+  insurance?: number;
+  // Management
+  managerId?: number;
+  // Location
+  latitude?: number;
+  longitude?: number;
+  // Additional info
+  description?: string;
+  // Timestamps
   createdAt?: string;
   updatedAt?: string;
   // Legacy fields for backward compatibility
-  totalUnits?: number; // Maps to total_units
+  total_units?: number; // Maps to totalUnits
+  image_url?: string; // Maps to imageUrl
   buildingType?: string; // Maps to type
-  imageUrl?: string; // Maps to image_url
-  propertyTax?: number;
-  insurance?: number;
-  yearBuilt?: number;
-  managerId?: string | number;
-  managerName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
 }
 
 export interface BuildingStats {
-  occupancyRate: number;
-  revenue: number;
-  net: number;
-  expenses: number;
+  building: {
+    id: number;
+    name: string;
+    totalUnits: number;
+    status: string;
+  };
+  occupiedUnits: number;
+  vacantUnits: number;
+  totalUnits: number;
+  totalRevenue: number;
+  maintenanceRequests: number;
+  occupancyRate?: number;
+  revenue?: number;
+  expenses?: number;
+  net?: number;
 }
 
 export interface Unit {

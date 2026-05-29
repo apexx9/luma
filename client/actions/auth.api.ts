@@ -1,24 +1,33 @@
 import { api } from '@/lib/api-client';
-import { LoginCredentials, RegisterCredentials, AuthResponse, User } from '@/lib/auth';
+import {
+  authService,
+  type AuthResponse,
+  type LoginCredentials,
+  type RegisterCredentials,
+  type User,
+} from '@/lib/auth';
 
-// Auth API calls
-export const login = (credentials: LoginCredentials) => 
-  api.post<AuthResponse>('/auth/login', credentials);
+export const login = (credentials: LoginCredentials): Promise<AuthResponse> =>
+  authService.login(credentials);
 
-export const register = (credentials: RegisterCredentials) => 
-  api.post<AuthResponse>('/auth/register', credentials);
+export const register = (credentials: RegisterCredentials): Promise<AuthResponse> =>
+  authService.register(credentials);
 
-export const logout = (refreshToken: string) => 
-  api.post<void>('/auth/logout', { refreshToken });
+export const logout = (): Promise<void> => authService.logout();
 
-export const refreshToken = (refreshToken: string) => 
-  api.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', { refreshToken });
+export const refreshToken = (): Promise<string | null> =>
+  authService.refreshAccessToken();
 
-export const getCurrentUser = () => 
-  api.get<User>('/auth/me');
+export const getCurrentUser = (): Promise<User | null> =>
+  Promise.resolve(authService.getCurrentUser());
 
-export const updateProfile = (data: Partial<User>) => 
-  api.put<User>('/auth/profile', data);
+export const updateProfile = (data: Partial<User>): Promise<User> =>
+  authService.updateProfile(data);
 
-export const changePassword = (data: { currentPassword: string; newPassword: string }) => 
-  api.post<void>('/auth/change-password', data);
+export const changePassword = (data: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> => authService.changePassword(data);
+
+export const validateSession = (): Promise<{ valid: boolean }> =>
+  api.get<{ valid: boolean }>('/auth/validate');

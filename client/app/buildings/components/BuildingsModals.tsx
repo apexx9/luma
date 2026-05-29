@@ -12,6 +12,8 @@ interface BuildingsModalsProps {
   editingBuilding: Building | null;
   onCreateBuilding: (data: any) => void;
   onUpdateBuilding: (data: any) => void;
+  showSuccessState?: boolean;
+  onShowSuccess?: () => void;
 }
 
 export function BuildingsModals({
@@ -21,33 +23,51 @@ export function BuildingsModals({
   setIsEditModalOpen,
   editingBuilding,
   onCreateBuilding,
-  onUpdateBuilding
+  onUpdateBuilding,
+  showSuccessState = false,
+  onShowSuccess
 }: BuildingsModalsProps) {
   return (
     <>
-      {/* ADD BUILDING MODAL */}
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        title="Add New Building"
-      >
-        <StepForm 
-          onSubmit={onCreateBuilding}
-          onCancel={() => setIsAddModalOpen(false)}
-        />
-      </Modal>
+      {/* ADD BUILDING MODAL - Only show if not in success state */}
+      {isAddModalOpen && !showSuccessState && (
+        <Modal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          title="Add New Building"
+        >
+          <StepForm 
+            onSubmit={onCreateBuilding}
+            onCancel={() => setIsAddModalOpen(false)}
+            onShowSuccess={onShowSuccess}
+          />
+        </Modal>
+      )}
 
       {/* EDIT BUILDING MODAL */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Edit Building"
-      >
-        <StepForm 
-          onSubmit={onUpdateBuilding}
-          onCancel={() => setIsEditModalOpen(false)}
-        />
-      </Modal>
+      {isEditModalOpen && (
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          title="Edit Building"
+        >
+          <StepForm 
+            onSubmit={onUpdateBuilding}
+            onCancel={() => setIsEditModalOpen(false)}
+          />
+        </Modal>
+      )}
+
+      {/* SUCCESS STATE - Full screen without modal */}
+      {isAddModalOpen && showSuccessState && (
+        <div className="fixed inset-0 bg-white dark:bg-[#0A0A0B] flex items-center justify-center z-50">
+          <StepForm 
+            onSubmit={onCreateBuilding}
+            onCancel={() => setIsAddModalOpen(false)}
+            onShowSuccess={onShowSuccess}
+          />
+        </div>
+      )}
     </>
   );
 }

@@ -56,13 +56,7 @@ export const getBuildingStats = (buildingId: string | number): Promise<BuildingS
     return get(`/buildings/${buildingId}/stats`);
 };
 
-export const getBuildingUnits = (buildingId: string | number): Promise<Unit[]> => {
-    return get(`/buildings/${buildingId}/units`);
-};
-
-export const addUnitToBuilding = (buildingId: string | number, unitData: any) => {
-    return post(`/buildings/${buildingId}/units`, unitData);
-};
+// Units functionality removed - using buildings table only
 
 export const updateBuildingStatus = (buildingId: string | number, status: string) => {
     return put(`/buildings/${buildingId}/status`, { status });
@@ -73,9 +67,7 @@ export const uploadBuildingImage = (buildingId: string | number, imageUrl: strin
     return post(`/buildings/${buildingId}/images`, { imageUrl });
 };
 
-export const deleteBuildingImage = (buildingId: string | number, imageId: string | number) => {
-    return del(`/buildings/${buildingId}/images/${imageId}`);
-};
+// deleteBuildingImage not implemented on server
 
 // Bulk Operations
 export const bulkUpdateBuildings = (buildingsData: any[]) => {

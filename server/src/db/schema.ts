@@ -1,4 +1,5 @@
 import {
+  boolean,
   pgTable,
   serial,
   text,
@@ -15,19 +16,27 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   password: text('password').notNull(),
   role: text('role').default('User'),
+  mustChangePassword: boolean('must_change_password').notNull().default(false),
+  profileVerified: boolean('profile_verified').notNull().default(false),
+  passwordChangedAt: timestamp('password_changed_at'),
+  profileVerifiedAt: timestamp('profile_verified_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
 export const sessions = pgTable('sessions', {
   id: serial('id').primaryKey(),
+  sessionId: text('session_id').notNull().unique(),
   userId: integer('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
 
   refreshToken: text('refresh_token').notNull(),
   userAgent: text('user_agent'),
+  ipAddress: text('ip_address'),
   createdAt: timestamp('created_at').defaultNow(),
+  lastUsedAt: timestamp('last_used_at').defaultNow(),
   expiresAt: timestamp('expires_at').notNull(),
+  revokedAt: timestamp('revoked_at'),
 });
 
 export const roles = pgTable('roles', {

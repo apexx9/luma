@@ -1,17 +1,7 @@
-import Cookies from 'js-cookie';
-import axios from 'axios';
+import axios, { type AxiosInstance, type AxiosError } from 'axios';
 
-// Token configuration
-export const TOKEN_CONFIG = {
-  ACCESS_TOKEN: 'access_token',
-  REFRESH_TOKEN: 'refresh_token',
-  ACCESS_EXPIRY: 1 * 60 * 60 * 1000, // 1 hour
-  REFRESH_EXPIRY: 7 * 24 * 60 * 60 * 1000, // 7 days
-} as const;
-
-// API configuration
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
   TIMEOUT: 10000,
   ENDPOINTS: {
     LOGIN: '/auth/login',
@@ -19,21 +9,24 @@ export const API_CONFIG = {
     REFRESH: '/auth/refresh',
     LOGOUT: '/auth/logout',
     VALIDATE: '/auth/validate',
+    ME: '/auth/me',
+    PROFILE: '/auth/profile',
+    CHANGE_PASSWORD: '/auth/change-password',
   } as const,
 } as const;
 
-// User types
 export interface User {
-  id: string;
+  id: number;
   email: string;
   name: string;
   role: string;
-  avatar?: string;
+  avatar?: string | null;
+  mustChangePassword: boolean;
+  profileVerified: boolean;
 }
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
   user: User;
 }
 
@@ -48,216 +41,317 @@ export interface RegisterCredentials {
   password: string;
 }
 
-// Token management
-class TokenManager {
-  private getCookieOptions() {
-    return {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: (process.env.NODE_ENV === 'production' ? 'strict' : 'lax') as 'strict' | 'lax',
-      expires: new Date(Date.now() + TOKEN_CONFIG.REFRESH_EXPIRY),
-    };
+type JwtPayload = {
+  sub?: number;
+  email?: string;
+  name?: string;
+  role?: string;
+  avatar?: string | null;
+  mustChangePassword?: boolean;
+  profileVerified?: boolean;
+  exp?: number;
+};
+
+function decodeJwtPayload(token: string): JwtPayload | null {
+  const [, payload] = token.split('.');
+
+  if (!payload) {
+    return null;
   }
 
-  setTokens(accessToken: string, refreshToken: string) {
-    Cookies.set(TOKEN_CONFIG.ACCESS_TOKEN, accessToken, {
-      ...this.getCookieOptions(),
-      expires: new Date(Date.now() + TOKEN_CONFIG.ACCESS_EXPIRY),
-    });
-    Cookies.set(TOKEN_CONFIG.REFRESH_TOKEN, refreshToken, this.getCookieOptions());
-  }
-
-  getAccessToken(): string | null {
-    return Cookies.get(TOKEN_CONFIG.ACCESS_TOKEN) || null;
-  }
-
-  getRefreshToken(): string | null {
-    return Cookies.get(TOKEN_CONFIG.REFRESH_TOKEN) || null;
-  }
-
-  clearTokens() {
-    Cookies.remove(TOKEN_CONFIG.ACCESS_TOKEN);
-    Cookies.remove(TOKEN_CONFIG.REFRESH_TOKEN);
-  }
-
-  isAccessTokenExpired(): boolean {
-    const token = this.getAccessToken();
-    if (!token) return true;
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now();
-      const expiryTime = payload.exp * 1000;
-      return currentTime >= expiryTime;
-    } catch {
-      return true;
-    }
-  }
-
-  isRefreshTokenExpired(): boolean {
-    const token = this.getRefreshToken();
-    if (!token) return true;
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return Date.now() >= payload.exp * 1000;
-    } catch {
-      return true;
-    }
-  }
-
-  hasValidTokens(): boolean {
-    // Access token can be expired, but refresh token might still be valid
-    // We can use refresh token to get a new access token
-    return !this.isRefreshTokenExpired();
+  try {
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const decoded = atob(padded);
+    return JSON.parse(decoded) as JwtPayload;
+  } catch {
+    return null;
   }
 }
 
-// Authentication service
+function isAxiosError(error: unknown): error is AxiosError {
+  return axios.isAxiosError(error);
+}
+
 class AuthService {
-  private tokenManager = new TokenManager();
-  private refreshPromise: Promise<string | null> | null = null;
+  private accessToken: string | null = null;
 
-  // Server-side token validation
-  async validateToken(): Promise<boolean> {
-    const token = this.tokenManager.getAccessToken();
-    if (!token) return false;
+  private currentUser: User | null = null;
 
+  private refreshPromise: Promise<AuthResponse | null> | null = null;
+
+  private bootstrapPromise: Promise<boolean> | null = null;
+
+  private readonly http: AxiosInstance;
+
+  constructor() {
+    this.http = axios.create({
+      baseURL: API_CONFIG.BASE_URL,
+      timeout: API_CONFIG.TIMEOUT,
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  private hydrateSession(session: AuthResponse): void {
+    this.accessToken = session.accessToken;
+    this.currentUser = session.user;
+  }
+
+  private clearSession(): void {
+    this.accessToken = null;
+    this.currentUser = null;
+  }
+
+  private buildAuthHeaders(): Record<string, string> {
+    if (!this.accessToken) {
+      return {};
+    }
+
+    return {
+      Authorization: `Bearer ${this.accessToken}`,
+    };
+  }
+
+  private async retryOnceOnUnauthorized<T>(action: () => Promise<T>): Promise<T> {
     try {
-      const response = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.VALIDATE}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        timeout: 5000,
-      });
-      return response.status === 200;
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
-        // Validation endpoint doesn't exist, fall back to client-side check
-        return this.tokenManager.hasValidTokens();
+      return await action();
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 401) {
+        const refreshed = await this.refreshAccessToken();
+        if (refreshed) {
+          return action();
+        }
       }
-      console.warn('Token validation failed:', error?.response?.status || error?.message);
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
-        this.tokenManager.clearTokens();
-      }
-      return false;
+
+      throw error;
     }
   }
 
-  // Token refresh
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const response = await this.http.post<AuthResponse>(
+      API_CONFIG.ENDPOINTS.LOGIN,
+      credentials,
+    );
+    this.hydrateSession(response.data);
+    return response.data;
+  }
+
+  async register(credentials: RegisterCredentials): Promise<AuthResponse> {
+    const response = await this.http.post<AuthResponse>(
+      API_CONFIG.ENDPOINTS.REGISTER,
+      credentials,
+    );
+    this.hydrateSession(response.data);
+    return response.data;
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.retryOnceOnUnauthorized(() =>
+        this.http.post(API_CONFIG.ENDPOINTS.LOGOUT, null, {
+          headers: this.buildAuthHeaders(),
+        }),
+      );
+    } catch (error: unknown) {
+      if (!isAxiosError(error) || error.response?.status !== 401) {
+        console.warn('Logout request failed:', error);
+      }
+    } finally {
+      this.clearSession();
+    }
+  }
+
   async refreshAccessToken(): Promise<string | null> {
     if (this.refreshPromise) {
-      return this.refreshPromise;
+      return this.refreshPromise.then((session) => session?.accessToken ?? null);
     }
 
-    this.refreshPromise = this.performTokenRefresh();
-    
+    this.refreshPromise = this.performRefresh();
+
     try {
-      const result = await this.refreshPromise;
-      return result;
+      const session = await this.refreshPromise;
+      return session?.accessToken ?? null;
     } finally {
       this.refreshPromise = null;
     }
   }
 
-  private async performTokenRefresh(): Promise<string | null> {
-    const refreshToken = this.tokenManager.getRefreshToken();
-    if (!refreshToken) return null;
-
+  private async performRefresh(): Promise<AuthResponse | null> {
     try {
-      const response = await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REFRESH}`, {
-        refreshToken,
-      });
+      const response = await this.http.post<AuthResponse>(
+        API_CONFIG.ENDPOINTS.REFRESH,
+      );
 
-      const { accessToken, refreshToken: newRefreshToken } = response.data;
-      this.tokenManager.setTokens(accessToken, newRefreshToken || refreshToken);
-      return accessToken;
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      this.tokenManager.clearTokens();
+      if (!response.data?.accessToken) {
+        this.clearSession();
+        return null;
+      }
+
+      this.hydrateSession(response.data);
+      return response.data;
+    } catch (error: unknown) {
+      if (isAxiosError(error)) {
+        console.warn('Token refresh failed:', error.response?.status);
+      }
+
+      this.clearSession();
       return null;
     }
   }
 
-  // Authentication check
-  async checkAuthentication(): Promise<boolean> {
-    const hasAccessToken = this.tokenManager.hasValidTokens();
-    
-    if (!hasAccessToken) {
+  async fetchCurrentUser(): Promise<User | null> {
+    try {
+      const response = await this.http.get<{ user: User }>(
+        API_CONFIG.ENDPOINTS.ME,
+        {
+          headers: this.buildAuthHeaders(),
+        },
+      );
+
+      const user = response.data.user;
+      this.currentUser = user;
+      return user;
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 401) {
+        const refreshed = await this.refreshAccessToken();
+        if (refreshed) {
+          return this.fetchCurrentUser();
+        }
+
+        return null;
+      }
+
+      console.warn('Fetching current user failed:', error);
+      return null;
+    }
+  }
+
+  async validateToken(): Promise<boolean> {
+    if (!this.accessToken) {
       return false;
     }
-    
-    // If access token is expired but refresh token is still valid, try to refresh
-    if (this.tokenManager.isAccessTokenExpired() && !this.tokenManager.isRefreshTokenExpired()) {
-      try {
-        const newAccessToken = await this.refreshAccessToken();
-        if (newAccessToken) {
+
+    try {
+      await this.http.get(API_CONFIG.ENDPOINTS.VALIDATE, {
+        headers: this.buildAuthHeaders(),
+      });
+      return true;
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 401) {
+        const refreshed = await this.refreshAccessToken();
+        if (refreshed) {
+          await this.fetchCurrentUser();
           return true;
         }
-      } catch (error) {
+      }
+
+      return false;
+    }
+  }
+
+  async checkAuthentication(): Promise<boolean> {
+    if (!this.bootstrapPromise) {
+      this.bootstrapPromise = this.bootstrapSession();
+    }
+
+    return this.bootstrapPromise;
+  }
+
+  private async bootstrapSession(): Promise<boolean> {
+    try {
+      if (!this.accessToken) {
+        const refreshed = await this.refreshAccessToken();
+        if (!refreshed) {
+          return false;
+        }
+      }
+
+      const user = await this.fetchCurrentUser();
+      if (!user) {
+        this.clearSession();
         return false;
       }
-    }
-    
-    const isValid = await this.validateToken();
-    return isValid;
-  }
 
-  // Login
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`, credentials);
-    
-    const authData = response.data as AuthResponse;
-    this.tokenManager.setTokens(authData.accessToken, authData.refreshToken);
-    
-    return authData;
-  }
-
-  // Register
-  async register(credentials: RegisterCredentials): Promise<AuthResponse> {
-    const response = await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.REGISTER}`, credentials);
-    
-    const authData = response.data as AuthResponse;
-    this.tokenManager.setTokens(authData.accessToken, authData.refreshToken);
-    
-    return authData;
-  }
-
-  // Logout
-  async logout(): Promise<void> {
-    try {
-      await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGOUT}`, {
-        refreshToken: this.tokenManager.getRefreshToken(),
-      });
-    } catch (error) {
-      console.error('Logout API call failed:', error);
-    } finally {
-      this.tokenManager.clearTokens();
-    }
-  }
-
-  // Get current user from token
-  getCurrentUser(): User | null {
-    const token = this.tokenManager.getAccessToken();
-    if (!token) return null;
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return {
-        id: payload.sub || payload.id,
-        email: payload.email,
-        name: payload.name || payload.email?.split('@')[0] || 'User',
-        role: payload.role || 'User',
-        avatar: payload.avatar,
-      };
+      return true;
     } catch {
+      this.clearSession();
+      return false;
+    } finally {
+      this.bootstrapPromise = null;
+    }
+  }
+
+  getCurrentUser(): User | null {
+    if (this.currentUser) {
+      return this.currentUser;
+    }
+
+    if (!this.accessToken) {
       return null;
     }
+
+    const payload = decodeJwtPayload(this.accessToken);
+
+    if (!payload || typeof payload.sub !== 'number') {
+      return null;
+    }
+
+    return {
+      id: payload.sub,
+      email: payload.email ?? '',
+      name: payload.name ?? payload.email?.split('@')[0] ?? 'User',
+      role: payload.role ?? 'User',
+      avatar: payload.avatar ?? null,
+      mustChangePassword: payload.mustChangePassword ?? false,
+      profileVerified: payload.profileVerified ?? false,
+    };
   }
 
-  // Expose token manager methods
-  getAccessToken = () => this.tokenManager.getAccessToken();
-  clearTokens = () => this.tokenManager.clearTokens();
+  updateCurrentUser(user: User | null): void {
+    this.currentUser = user;
+  }
+
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
+  clearTokens(): void {
+    this.clearSession();
+  }
+
+  async updateProfile(data: Partial<User>): Promise<User> {
+    const response = await this.retryOnceOnUnauthorized(() =>
+      this.http.put<{ user: User }>(
+        API_CONFIG.ENDPOINTS.PROFILE,
+        data,
+        {
+          headers: this.buildAuthHeaders(),
+        },
+      ),
+    );
+
+    this.currentUser = response.data.user;
+    return response.data.user;
+  }
+
+  async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> {
+    await this.retryOnceOnUnauthorized(() =>
+      this.http.post(
+        API_CONFIG.ENDPOINTS.CHANGE_PASSWORD,
+        data,
+        {
+          headers: this.buildAuthHeaders(),
+        },
+      ),
+    );
+  }
 }
 
 export const authService = new AuthService();
-export const tokenManager = authService; // For backward compatibility
+export const tokenManager = authService;

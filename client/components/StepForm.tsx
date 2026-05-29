@@ -14,9 +14,10 @@ import { StepTwoLocation } from "./StepForm/StepTwoLocation";
 import { StepThreeSpecs } from "./StepForm/StepThreeSpecs";
 import { StepFourValuation } from "./StepForm/StepFourValuation";
 
-export const StepForm = ({ onSubmit, onCancel }: {
+export const StepForm = ({ onSubmit, onCancel, onShowSuccess }: {
     onSubmit: (data: StepFormData) => void;
     onCancel: () => void;
+    onShowSuccess?: () => void;
 }) => {
     const { isAuthenticated } = useStore();
     const [currentStep, setCurrentStep] = useState(1);
@@ -121,6 +122,7 @@ export const StepForm = ({ onSubmit, onCancel }: {
             await onSubmit(formData);
             setIsSubmitted(true);
             showToast('success', 'Property created successfully!');
+            onShowSuccess?.();
         } catch (error: any) {
             console.error('Submit error:', error);
             const errorMessage = error?.response?.data?.message || error?.message || 'Failed to create property';
@@ -133,20 +135,22 @@ export const StepForm = ({ onSubmit, onCancel }: {
 
     if (isSubmitted && !submitError) {
         return (
-            <div className="absolute inset-0 bg-white dark:bg-[#0A0A0B] rounded-[2.5rem] flex items-center justify-center z-10 w-full h-full min-h-[400px]">
-                <SuccessState onReset={() => {
+            <SuccessState 
+                message="Building created successfully!"
+                onReset={() => {
                     setIsSubmitted(false);
                     setCurrentStep(1);
                     setFormData(initialFormData);
                     setImagePreview(null);
                     setSubmitError(null);
-                }} />
-            </div>
+                    onCancel(); // Close the modal
+                }} 
+            />
         );
     }
 
     return (
-        <div className="w-full max-w-2xl mx-auto p-4">
+        <div className="w-full max-w-2xl mx-auto p-4 relative overflow-visible">
             <AnimatePresence>
                 {toast && (
                     <motion.div

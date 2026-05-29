@@ -35,6 +35,12 @@ export default function AuthGuard({ children, fallback }: AuthGuardProps) {
     performAuthCheck();
   }, [checkAuth, router]);
 
+  useEffect(() => {
+    if (!isChecking && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isChecking, isAuthenticated, router]);
+
   if (isChecking) {
     return fallback || <BrandLoader />;
   }

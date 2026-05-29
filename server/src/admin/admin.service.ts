@@ -20,7 +20,12 @@ export class AdminService {
 
     // Check if user has Admin or Property Manager role or is in admin email list
     const adminEmails = ['aaron@luma.com', 'aaron.nartey@example.com'];
-    if (adminEmails.includes(user.email) || user.email.includes('admin') || user.role === 'Admin' || user.role === 'Property Manager') {
+    if (
+      adminEmails.includes(user.email) ||
+      user.email.includes('admin') ||
+      user.role === 'Admin' ||
+      user.role === 'Property Manager'
+    ) {
       return { isAdmin: true };
     }
 
@@ -29,15 +34,19 @@ export class AdminService {
 
   async getAllUsers() {
     try {
-      const allUsers = await this.db.select({
+      const allUsers = await this.db
+      .select({
         id: users.id,
         name: users.name,
         email: users.email,
         role: users.role,
+        mustChangePassword: users.mustChangePassword,
+        profileVerified: users.profileVerified,
         createdAt: users.createdAt,
-      }).from(users);
+      })
+        .from(users);
 
-      return allUsers.map(user => ({
+      return allUsers.map((user) => ({
         ...user,
         isActive: true, // Default active status
         lastLogin: null, // Simplified for now
@@ -90,18 +99,30 @@ export class AdminService {
       .values({
         name: createUserDto.name,
         email: createUserDto.email,
-        password: hash,
+      password: hash,
+      mustChangePassword: true,
+      profileVerified: false,
       })
       .returning();
 
+    if (!newUser) {
+      throw new ForbiddenException('Failed to create user');
+    }
+
     // Log admin activity
-    await this.logAdminActivity(adminId, 'CREATE_USER', `Created user: ${createUserDto.email}`);
+    await this.logAdminActivity(
+      adminId,
+      'CREATE_USER',
+      `Created user: ${createUserDto.email}`,
+    );
 
     return {
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
       role: createUserDto.role || 'User',
+      mustChangePassword: true,
+      profileVerified: false,
       isActive: true,
       createdAt: newUser.createdAt,
       lastLogin: null,
@@ -127,12 +148,23 @@ export class AdminService {
       .where(eq(users.id, id))
       .returning();
 
-    await this.logAdminActivity(adminId, 'UPDATE_USER', `Updated user: ${updatedUser.email}`);
+    if (!updatedUser) {
+      throw new ForbiddenException('Failed to update user');
+    }
+
+    await this.logAdminActivity(
+      adminId,
+      'UPDATE_USER',
+      `Updated user: ${updatedUser.email}`,
+    );
 
     return {
       ...updatedUser,
       role: updateUserDto.role || 'User',
-      isActive: updateUserDto.isActive !== undefined ? updateUserDto.isActive : true,
+      mustChangePassword: Boolean(updatedUser.mustChangePassword),
+      profileVerified: Boolean(updatedUser.profileVerified),
+      isActive:
+        updateUserDto.isActive !== undefined ? updateUserDto.isActive : true,
       lastLogin: null,
     };
   }
@@ -147,8 +179,12 @@ export class AdminService {
     }
 
     await this.db.delete(users).where(eq(users.id, id));
-    
-    await this.logAdminActivity(adminId, 'DELETE_USER', `Deleted user: ${user.email}`);
+
+    await this.logAdminActivity(
+      adminId,
+      'DELETE_USER',
+      `Deleted user: ${user.email}`,
+    );
   }
 
   async resetUserPassword(id: number, newPassword: string, adminId: number) {
@@ -164,10 +200,18 @@ export class AdminService {
 
     await this.db
       .update(users)
-      .set({ password: hash })
+      .set({
+        password: hash,
+        mustChangePassword: true,
+        profileVerified: false,
+      })
       .where(eq(users.id, id));
 
-    await this.logAdminActivity(adminId, 'RESET_PASSWORD', `Reset password for: ${user.email}`);
+    await this.logAdminActivity(
+      adminId,
+      'RESET_PASSWORD',
+      `Reset password for: ${user.email}`,
+    );
 
     return { success: true };
   }
@@ -183,11 +227,17 @@ export class AdminService {
 
     // For now, we'll simulate status toggle by updating a field
     // In a real implementation, you'd add an 'isActive' column to the users table
-    await this.logAdminActivity(adminId, 'TOGGLE_STATUS', `Toggled status for: ${user.email}`);
+    await this.logAdminActivity(
+      adminId,
+      'TOGGLE_STATUS',
+      `Toggled status for: ${user.email}`,
+    );
 
     return {
       ...user,
       isActive: true, // Simulated toggle
+      mustChangePassword: Boolean(user.mustChangePassword),
+      profileVerified: Boolean(user.profileVerified),
     };
   }
 
@@ -196,16 +246,30 @@ export class AdminService {
       where: (users, { inArray }) => inArray(users.id, userIds),
     });
 
-    await this.db.delete(users).where((users, { inArray }) => inArray(users.id, userIds));
+    await this.db
+      .delete(users)
+      .where((users, { inArray }) => inArray(users.id, userIds));
 
-    await this.logAdminActivity(adminId, 'BULK_DELETE', `Bulk deleted ${userIds.length} users`);
+    await this.logAdminActivity(
+      adminId,
+      'BULK_DELETE',
+      `Bulk deleted ${userIds.length} users`,
+    );
 
     return { success: true, deleted: userIds.length };
   }
 
-  async bulkToggleStatus(userIds: number[], isActive: boolean, adminId: number) {
+  async bulkToggleStatus(
+    userIds: number[],
+    isActive: boolean,
+    adminId: number,
+  ) {
     // In a real implementation, you'd update an 'isActive' column
-    await this.logAdminActivity(adminId, 'BULK_TOGGLE', `Bulk toggled status for ${userIds.length} users`);
+    await this.logAdminActivity(
+      adminId,
+      'BULK_TOGGLE',
+      `Bulk toggled status for ${userIds.length} users`,
+    );
 
     return { success: true, updated: userIds.length };
   }
@@ -244,13 +308,18 @@ export class AdminService {
       limit: limit || 50,
     });
 
-    return activities.map(activity => ({
+    return activities.map((activity) => ({
       ...activity,
       adminName: `Admin ${activity.adminId}`, // Would fetch actual admin name
     }));
   }
 
-  private async logAdminActivity(adminId: number, action: string, target: string, details?: string) {
+  private async logAdminActivity(
+    adminId: number,
+    action: string,
+    target: string,
+    details?: string,
+  ) {
     await this.db.insert(adminActivity).values({
       adminId,
       action,

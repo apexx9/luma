@@ -4,41 +4,106 @@ import { useState, useEffect } from "react";
 import { useStore } from "@/store";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import axios from "axios";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const { login: loginUser, showToast, isAuthenticated } = useStore();
+    const [emailError, setEmailError] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+    const { login: loginUser, checkAuth, showToast } = useStore();
     const router = useRouter();
 
-    // Redirect authenticated users to dashboard
     useEffect(() => {
-        if (isAuthenticated) {
-            router.push("/");
+        let mounted = true;
+
+        const runAuthCheck = async () => {
+            const isValid = await checkAuth();
+            if (mounted && isValid) {
+                router.push("/");
+            }
+        };
+
+        void runAuthCheck();
+
+        return () => {
+            mounted = false;
+        };
+    }, [checkAuth, router]);
+
+    const validateEmail = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email) {
+            setEmailError("Email is required");
+            return false;
         }
-    }, [isAuthenticated, router]);
+        if (!emailRegex.test(email)) {
+            setEmailError("Please enter a valid email address");
+            return false;
+        }
+        setEmailError("");
+        return true;
+    };
+
+    const validatePassword = (password: string) => {
+        if (!password) {
+            setPasswordError("Password is required");
+            return false;
+        }
+        if (password.length < 6) {
+            setPasswordError("Password must be at least 6 characters");
+            return false;
+        }
+        setPasswordError("");
+        return true;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!email || !password) {
-            showToast("Please enter both email and password.");
+        // Clear previous errors
+        setEmailError("");
+        setPasswordError("");
+        
+        // Validate inputs
+        const isEmailValid = validateEmail(email);
+        const isPasswordValid = validatePassword(password);
+        
+        if (!isEmailValid || !isPasswordValid) {
+            showToast("Please fix the errors below", "error");
             return;
         }
 
         setIsLoading(true);
         
         try {
-            await loginUser(email, password);
+            const session = await loginUser(email, password);
+            showToast("Login successful! Welcome back.", "success");
+            if (session.user.mustChangePassword || !session.user.profileVerified) {
+                router.push("/onboarding");
+                return;
+            }
             router.push("/");
-        } catch (error: any) {
-            // Error handling is done in the store
-            console.error("Login error:", error);
+        } catch (error: unknown) {
+            const errorMessage = axios.isAxiosError(error)
+                ? (error.response?.data?.message as string | undefined) ?? error.message
+                : error instanceof Error
+                    ? error.message
+                    : "Login failed. Please try again.";
+            showToast(errorMessage, "error");
+            
+            // Set specific field errors based on response
+            if (errorMessage.toLowerCase().includes("email") || errorMessage.toLowerCase().includes("user")) {
+                setEmailError("Invalid email address");
+            }
+            if (errorMessage.toLowerCase().includes("password")) {
+                setPasswordError("Invalid password");
+            }
         } finally {
             setIsLoading(false);
         }
@@ -95,37 +160,70 @@ export default function LoginPage() {
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest ml-1">Email Address</label>
                             <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
+                                <Mail className={cn(
+                                    "absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors",
+                                    emailError ? "text-red-400" : "text-gray-600"
+                                )} />
                                 <input
                                     type="email"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        if (emailError) validateEmail(e.target.value);
+                                    }}
+                                    onBlur={(e) => validateEmail(e.target.value)}
                                     placeholder="Enter your email"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                    className={cn(
+                                        "w-full bg-white/5 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 transition-all",
+                                        emailError 
+                                            ? "border-red-500/50 focus:ring-red-500/50 focus:border-red-500/50" 
+                                            : "border-white/10 focus:ring-primary/50 focus:border-primary/50"
+                                    )}
                                     required
                                 />
                             </div>
+                            {emailError && (
+                                <div className="flex items-center gap-2 mt-2 ml-1">
+                                    <div className="w-1 h-1 bg-red-400 rounded-full"></div>
+                                    <p className="text-xs text-red-400 font-medium">{emailError}</p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex justify-between items-center ml-1">
                                 <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Password</label>
-                                <button type="button" className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Forgot Password?</button>
+                                <Link href="/forgot-password" className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Forgot Password?</Link>
                             </div>
                             <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
+                                <Lock className={cn(
+                                    "absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors",
+                                    passwordError ? "text-red-400" : "text-gray-600"
+                                )} />
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        if (passwordError) validatePassword(e.target.value);
+                                    }}
+                                    onBlur={(e) => validatePassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                    className={cn(
+                                        "w-full bg-white/5 border rounded-2xl py-4 pl-12 pr-12 text-white placeholder:text-gray-700 focus:outline-none focus:ring-2 transition-all",
+                                        passwordError 
+                                            ? "border-red-500/50 focus:ring-red-500/50 focus:border-red-500/50" 
+                                            : "border-white/10 focus:ring-primary/50 focus:border-primary/50"
+                                    )}
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-primary transition-colors"
+                                    className={cn(
+                                        "absolute right-4 top-1/2 -translate-y-1/2 transition-colors",
+                                        passwordError ? "text-red-400 hover:text-red-300" : "text-gray-600 hover:text-primary"
+                                    )}
                                 >
                                     {showPassword ? (
                                         <EyeOff className="w-5 h-5" />
@@ -134,6 +232,12 @@ export default function LoginPage() {
                                     )}
                                 </button>
                             </div>
+                            {passwordError && (
+                                <div className="flex items-center gap-2 mt-2 ml-1">
+                                    <div className="w-1 h-1 bg-red-400 rounded-full"></div>
+                                    <p className="text-xs text-red-400 font-medium">{passwordError}</p>
+                                </div>
+                            )}
                         </div>
 
                         <button
@@ -152,7 +256,7 @@ export default function LoginPage() {
                     </form>
 
                     <p className="mt-10 text-center text-gray-500 text-sm">
-                        Don't have an account? <Link href="/request-access" className="text-primary font-bold hover:underline">Request Access</Link>
+                        Don&apos;t have an account? <Link href="/request-access" className="text-primary font-bold hover:underline">Request Access</Link>
                     </p>
                 </div>
             </div>

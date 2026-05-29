@@ -10,9 +10,13 @@ export class BuildingsService {
     try {
       const [newBuilding] = await this.db
         .insert(buildings)
-        .values({ ...buildingData, createdAt: new Date(), updatedAt: new Date() })
+        .values({
+          ...buildingData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
         .returning();
-      
+
       return newBuilding;
     } catch (error) {
       throw new Error(`Failed to create building: ${error.message}`);
@@ -21,33 +25,35 @@ export class BuildingsService {
 
   async getAllBuildings() {
     try {
-      const allBuildings = await this.db.select({
-        id: buildings.id,
-        name: buildings.name,
-        address: buildings.address,
-        city: buildings.city,
-        state: buildings.state,
-        zipCode: buildings.zipCode,
-        country: buildings.country,
-        type: buildings.type,
-        totalUnits: buildings.totalUnits,
-        yearBuilt: buildings.yearBuilt,
-        squareFootage: buildings.squareFootage,
-        numberOfFloors: buildings.numberOfFloors,
-        purchasePrice: buildings.purchasePrice,
-        monthlyRent: buildings.monthlyRent,
-        propertyTax: buildings.propertyTax,
-        insurance: buildings.insurance,
-        status: buildings.status,
-        managerId: buildings.managerId,
-        latitude: buildings.latitude,
-        longitude: buildings.longitude,
-        imageUrl: buildings.imageUrl,
-        description: buildings.description,
-        createdAt: buildings.createdAt,
-        updatedAt: buildings.updatedAt,
-      }).from(buildings);
-      
+      const allBuildings = await this.db
+        .select({
+          id: buildings.id,
+          name: buildings.name,
+          address: buildings.address,
+          city: buildings.city,
+          state: buildings.state,
+          zipCode: buildings.zipCode,
+          country: buildings.country,
+          type: buildings.type,
+          totalUnits: buildings.totalUnits,
+          yearBuilt: buildings.yearBuilt,
+          squareFootage: buildings.squareFootage,
+          numberOfFloors: buildings.numberOfFloors,
+          purchasePrice: buildings.purchasePrice,
+          monthlyRent: buildings.monthlyRent,
+          propertyTax: buildings.propertyTax,
+          insurance: buildings.insurance,
+          status: buildings.status,
+          managerId: buildings.managerId,
+          latitude: buildings.latitude,
+          longitude: buildings.longitude,
+          imageUrl: buildings.imageUrl,
+          description: buildings.description,
+          createdAt: buildings.createdAt,
+          updatedAt: buildings.updatedAt,
+        })
+        .from(buildings);
+
       return allBuildings;
     } catch (error) {
       throw new Error(`Failed to fetch buildings: ${error.message}`);
@@ -60,7 +66,7 @@ export class BuildingsService {
         .select()
         .from(buildings)
         .where(eq(buildings.id, id));
-      
+
       return building || null;
     } catch (error) {
       throw new Error(`Failed to fetch building: ${error.message}`);
@@ -74,7 +80,7 @@ export class BuildingsService {
         .set({ ...updateData, updatedAt: new Date() })
         .where(eq(buildings.id, id))
         .returning();
-      
+
       return updatedBuilding;
     } catch (error) {
       throw new Error(`Failed to update building: ${error.message}`);
@@ -83,10 +89,8 @@ export class BuildingsService {
 
   async deleteBuilding(id: number, userId: number) {
     try {
-      await this.db
-        .delete(buildings)
-        .where(eq(buildings.id, id));
-      
+      await this.db.delete(buildings).where(eq(buildings.id, id));
+
       return { message: 'Building deleted successfully' };
     } catch (error) {
       throw new Error(`Failed to delete building: ${error.message}`);
@@ -104,10 +108,10 @@ export class BuildingsService {
             ilike(buildings.name, `%${query}%`),
             ilike(buildings.address, `%${query}%`),
             ilike(buildings.city, `%${query}%`),
-            ilike(buildings.state, `%${query}%`)
-          )
+            ilike(buildings.state, `%${query}%`),
+          ),
         );
-      
+
       return results;
     } catch (error) {
       throw new Error(`Failed to search buildings: ${error.message}`);
@@ -120,7 +124,7 @@ export class BuildingsService {
         .select()
         .from(buildings)
         .where(ilike(buildings.city, `%${city}%`));
-      
+
       return results;
     } catch (error) {
       throw new Error(`Failed to fetch buildings by city: ${error.message}`);
@@ -133,7 +137,7 @@ export class BuildingsService {
         .select()
         .from(buildings)
         .where(eq(buildings.type, type));
-      
+
       return results;
     } catch (error) {
       throw new Error(`Failed to fetch buildings by type: ${error.message}`);
@@ -146,7 +150,7 @@ export class BuildingsService {
         .select()
         .from(buildings)
         .where(eq(buildings.managerId, managerId));
-      
+
       return results;
     } catch (error) {
       throw new Error(`Failed to fetch buildings by manager: ${error.message}`);
@@ -180,28 +184,36 @@ export class BuildingsService {
     }
   }
 
-  async updateBuildingStatus(buildingId: number, status: string, userId: number) {
+  async updateBuildingStatus(
+    buildingId: number,
+    status: string,
+    userId: number,
+  ) {
     try {
       const [updatedBuilding] = await this.db
         .update(buildings)
         .set({ status, updatedAt: new Date() })
         .where(eq(buildings.id, buildingId))
         .returning();
-      
+
       return updatedBuilding;
     } catch (error) {
       throw new Error(`Failed to update building status: ${error.message}`);
     }
   }
 
-  async uploadBuildingImage(buildingId: number, imageUrl: string, userId: number) {
+  async uploadBuildingImage(
+    buildingId: number,
+    imageUrl: string,
+    userId: number,
+  ) {
     try {
       const [updatedBuilding] = await this.db
         .update(buildings)
         .set({ imageUrl, updatedAt: new Date() })
         .where(eq(buildings.id, buildingId))
         .returning();
-      
+
       return updatedBuilding;
     } catch (error) {
       throw new Error(`Failed to upload building image: ${error.message}`);
@@ -219,7 +231,7 @@ export class BuildingsService {
           .returning();
         results.push(updated);
       }
-      
+
       return results;
     } catch (error) {
       throw new Error(`Failed to bulk update buildings: ${error.message}`);
@@ -230,12 +242,10 @@ export class BuildingsService {
     try {
       const results: { id: number; deleted: boolean }[] = [];
       for (const id of buildingIds) {
-        await this.db
-          .delete(buildings)
-          .where(eq(buildings.id, id));
+        await this.db.delete(buildings).where(eq(buildings.id, id));
         results.push({ id, deleted: true });
       }
-      
+
       return { message: `Deleted ${buildingIds.length} buildings`, results };
     } catch (error) {
       throw new Error(`Failed to bulk delete buildings: ${error.message}`);

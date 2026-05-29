@@ -2,22 +2,22 @@
 
 ## Overview
 
-This is a clean, industry-standard authentication system built with security and user experience in mind.
+This is a cookie-backed session authentication system with an in-memory access token and rotating refresh tokens. It is designed to keep the browser surface area small while still supporting automatic session recovery.
 
 ## Architecture
 
 ### Core Files
 
 1. **`/lib/auth.ts`** - Central authentication service
-   - Token management (access/refresh tokens)
-   - Server-side validation
-   - Automatic token refresh
-   - User data extraction
+   - In-memory access token storage
+   - Cookie-backed refresh flow
+   - Automatic session bootstrap and token refresh
+   - Current user hydration from `/auth/me`
 
 2. **`/lib/api-client.ts`** - Axios instance with auth interceptors
-   - Automatic token attachment
-   - Token refresh on 401 errors
-   - Network error handling
+   - Automatic bearer token attachment
+   - Retry-once refresh on 401 responses
+   - Network error handling and login redirect
 
 3. **`/store/index.ts`** - Zustand store for state management
    - Auth state management
@@ -37,10 +37,10 @@ This is a clean, industry-standard authentication system built with security and
 ## Key Features
 
 ### Security
-- **JWT tokens** with proper expiration handling
-- **Secure cookies** with httpOnly, secure, sameSite
-- **Automatic token refresh** before expiration
-- **Server-side validation** fallback to client-side
+- **JWT access tokens** with short-lived expiration
+- **httpOnly refresh cookies** that are rotated by the server
+- **Automatic refresh and session bootstrap**
+- **Server-side validation** through `/auth/me`
 - **Network error handling** for backend restarts
 
 ### User Experience
@@ -99,13 +99,12 @@ const data = await api.get('/buildings');
 ```typescript
 {
   accessToken: string,
-  refreshToken: string,
   user: {
-    id: string,
+    id: number,
     email: string,
     name: string,
     role: string,
-    avatar?: string
+    avatar?: string | null
   }
 }
 ```
@@ -115,7 +114,7 @@ const data = await api.get('/buildings');
 ### From Old System
 1. Update store imports: `@/store/useStore` → `@/store`
 2. Use new auth methods: `authService.login()` → `store.login()`
-3. No need to manually handle tokens - done automatically
+3. No need to manually handle refresh tokens - the server manages them in an httpOnly cookie
 4. Better error handling built-in
 
 ### File Changes

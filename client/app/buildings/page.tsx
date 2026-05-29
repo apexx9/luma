@@ -42,6 +42,7 @@ export default function BuildingsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
+  const [showSuccessState, setShowSuccessState] = useState(false);
 
   // 🔥 Optimized Search with Debouncing & Caching
   useEffect(() => {
@@ -184,7 +185,7 @@ export default function BuildingsPage() {
     try {
       await createBuilding(buildingData);
       showSuccess("Building created successfully");
-      setIsAddModalOpen(false);
+      setShowSuccessState(true);
       loadBuildings();
     } catch (error) {
       console.error('Create failed:', error);
@@ -251,6 +252,8 @@ export default function BuildingsPage() {
           setIsEditModalOpen={setIsEditModalOpen}
           editingBuilding={editingBuilding}
           onCreateBuilding={handleCreateBuilding}
+          showSuccessState={showSuccessState}
+          onShowSuccess={() => setShowSuccessState(true)}
           onUpdateBuilding={async (data) => {
             try {
               // Update building with all the data
